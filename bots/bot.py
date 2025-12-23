@@ -3,11 +3,12 @@ from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
+    ConversationHandler,
     CallbackQueryHandler,
     filters
 )
 from bots.handlers.commands import check_balance_command, start, help_command,transaction_command,report_command,button,transactions_command, undo_command
-from bots.handlers.messages import handle_text
+from bots.handlers.messages import cancel,handle_transaction_entry,handle_transaction_amount,handle_transaction_reason, handle_transaction_type
 async def set_commands(app):
     print("set command is called")
 
@@ -22,13 +23,24 @@ async def set_commands(app):
         BotCommand("transactions", "Get transactions: /tranactions <limit>"),
         BotCommand("help", "Show help information"),
         BotCommand("undo_transaction", "undo previous transaction"),
+        BotCommand("make_transaction", "Make a transaction interactively"),
     ])
 
+TYPE, AMOUNT, REASON = range(3)
 def init_bot(token: str) -> Application:
 
     app = Application.builder().token(token).build()
     app.post_init = set_commands
 
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("make_transaction", handle_transaction_entry)],
+        states={
+            TYPE: [MessageHandler(filters.Regex("(?i)^(Credit|Debit)$"), handle_transaction_type)],
+            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_transaction_amount)],
+            REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_transaction_reason)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
 
     # Command handlers
     app.add_handler(CommandHandler("start", start))
@@ -42,10 +54,7 @@ def init_bot(token: str) -> Application:
     # app.add_handler(CallbackQueryHandler(button))
 
     # Message handlers (non-command text)
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text)
-    )
-
+    app.add_handler(conv_handler)
     app.run_polling()
 
     return app
