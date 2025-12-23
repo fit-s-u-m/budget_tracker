@@ -9,8 +9,6 @@ The system stores transactions, automatically categorizes them, tracks account b
 
 The database is powered by SQLite, and the application is built using Python with the FastAPI framework.
 
----
-
 ## 🚀 Start Here
 ### 📌 How the System Works (Telegram Flow)
 
