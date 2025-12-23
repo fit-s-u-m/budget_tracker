@@ -10,6 +10,7 @@ from core.database import(
     fetch_monthly_spending_summary,
     fetch_latest_transaction,
     fetch_total_spending_per_category,
+    mark_transaction_undone,
     fetch_transactions_for_user,
 )
 from bots.context import AppContext
@@ -124,8 +125,11 @@ async def transaction_command(
 
 async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = AppContext().telegram_id  # make sure telegram_id is set in your context
+
+    if update.message is None:
+        return
     if telegram_id is None:
-        print("telegram_id is None")
+        await update.message.reply_text("Please register first using /start command.")
         return
 
     # Fetch data
@@ -149,6 +153,7 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if spending_per_category:
         summary_lines.append("💰 *Total Spending per Category*:")
         for cat in spending_per_category:
+            print(cat)
             summary_lines.append(
                 f"- {cat['category_name']} ({cat['category_type']}): {cat['total_amount']}"
             )
@@ -163,6 +168,7 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Join all lines
     summary_text = "\n".join(summary_lines)
+    print(summary_text)
 
     # Send message with Markdown formatting
     if update.effective_chat:
@@ -214,6 +220,8 @@ async def transactions_command(update: Update, context: ContextTypes.DEFAULT_TYP
         dt = datetime.strptime(txn['created_at'], '%Y-%m-%d %H:%M:%S')
         pretty_date = dt.strftime('%A, %d %B %Y at %I:%M %p')
         summary_lines.append(
+            f"------------------------------\n"
+            f"{'undo' if txn.get('status') == 'undone' else ''}\n"
             f"🗓 {pretty_date}\n"
             f"💸 {txn['type'].capitalize()}: {txn['amount']} birr\n"
             f"📝 Reason: {txn['reason']}\n"
@@ -249,30 +257,22 @@ async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(latest_txn)
 
     # Insert a reversing transaction
-    insert_transaction(
+    transaction = insert_transaction(
         account_id=account_id,
         category_name=latest_txn["category_name"],
         amount=latest_txn["amount"],
         type=reverse_type,
         reason=f"Undo: {latest_txn['reason']}"
     )
+    print(transaction)
+    transaction_id = transaction.get("id")
 
     # Mark original transaction as undone (optional)
-    # mark_transaction_undone(latest_txn["id"])
+    mark_transaction_undone(latest_txn["id"])
+    mark_transaction_undone(transaction_id)
 
     # Send confirmation
     balance = fetch_current_balance(account_id, telegram_id)
     await update.message.reply_text(
         f"✅ Last transaction has been undone.\n💰 Current balance: {balance:.2f} birr"
     )
-
-# useful
-# keyboard = [
-#         [InlineKeyboardButton("credit", callback_data="credit")],
-#         [InlineKeyboardButton("debit", callback_data="debit")],
-#         [InlineKeyboardButton("report", callback_data="report")],
-# ]
-# reply_markup = InlineKeyboardMarkup(keyboard)
-#
-#
-# await update.message.reply_text("Choose", reply_markup=reply_markup)

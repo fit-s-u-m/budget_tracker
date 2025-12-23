@@ -60,8 +60,10 @@ def insert_transaction(account_id: int, category_name: str, amount:int, type:str
         if type =="credit":
             cursor.execute(update_query.add_balance_query, (amount, account_id))
 
+        transaction_id = cursor.fetchone()
         connection.commit()
         print("transaction inserted successfully.")
+        return transaction_id
 
 # Create a new category in the categories table
 def create_category(name, type):

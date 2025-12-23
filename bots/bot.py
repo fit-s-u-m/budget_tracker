@@ -4,11 +4,13 @@ from telegram.ext import (
     CommandHandler,
     MessageHandler,
     ConversationHandler,
-    CallbackQueryHandler,
     filters
 )
-from bots.handlers.commands import check_balance_command, start, help_command,transaction_command,report_command,button,transactions_command, undo_command
-from bots.handlers.messages import cancel,handle_transaction_entry,handle_transaction_amount,handle_transaction_reason, handle_transaction_type
+from bots.handlers.commands import check_balance_command, start, help_command,transaction_command,report_command,transactions_command, undo_command
+from bots.handlers.conversation import cancel,handle_transaction_entry,handle_transaction_amount,handle_transaction_reason, handle_transaction_type
+from bots.handlers.messages import handle_text
+from custom_types import State
+
 async def set_commands(app):
     print("set command is called")
 
@@ -24,9 +26,9 @@ async def set_commands(app):
         BotCommand("help", "Show help information"),
         BotCommand("undo_transaction", "undo previous transaction"),
         BotCommand("make_transaction", "Make a transaction interactively"),
+        BotCommand("cancel", "quit current operation"),
     ])
 
-TYPE, AMOUNT, REASON = range(3)
 def init_bot(token: str) -> Application:
 
     app = Application.builder().token(token).build()
@@ -35,9 +37,9 @@ def init_bot(token: str) -> Application:
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("make_transaction", handle_transaction_entry)],
         states={
-            TYPE: [MessageHandler(filters.Regex("(?i)^(Credit|Debit)$"), handle_transaction_type)],
-            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_transaction_amount)],
-            REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_transaction_reason)],
+            State.TYPE: [MessageHandler(filters.Regex("(?i)^(Credit|Debit)$"), handle_transaction_type)],
+            State.AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_transaction_amount)],
+            State.REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_transaction_reason)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
@@ -51,9 +53,12 @@ def init_bot(token: str) -> Application:
     app.add_handler(CommandHandler("report", report_command))
     app.add_handler(CommandHandler("transactions", transactions_command))
     app.add_handler(CommandHandler("undo_transaction", undo_command))
-    # app.add_handler(CallbackQueryHandler(button))
+    app.add_handler(CommandHandler("cancel", cancel))
+    app.add_handler(CommandHandler("exit", cancel))
 
     # Message handlers (non-command text)
+    # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
     app.add_handler(conv_handler)
     app.run_polling()
 

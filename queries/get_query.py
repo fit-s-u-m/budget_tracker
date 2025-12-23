@@ -49,7 +49,9 @@ get_total_spending_per_category_query = '''
     FROM transactions t
     JOIN accounts a ON t.account_id = a.id
     JOIN categories c ON t.category_id = c.id
-    WHERE a.telegram_id = ? AND t.type='debit'
+    WHERE a.telegram_id = ? 
+        AND t.type='debit'
+        AND t.status='active'
     GROUP BY c.id, c.name, c.type
     ORDER BY total_amount DESC;
 '''
