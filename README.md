@@ -53,8 +53,9 @@ The database is powered by SQLite, and the application is built using Python wit
   - Restores the balance safely
 
 6. View recent transactions:
-
-  - /transactions [limit]
+```sh
+/transactions [limit]
+```
 
 7. Generate reports:
 ```sh
