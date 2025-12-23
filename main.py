@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from core.database import initalize_tables
 import getpass
 import os
-import asyncio
 
 load_dotenv()
 if "TELEGRAM_API_KEY" not in os.environ:

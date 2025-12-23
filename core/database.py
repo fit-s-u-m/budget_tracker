@@ -84,7 +84,8 @@ def create_account(telegram_id, name):
             "SELECT id FROM accounts WHERE telegram_id = ?",
             (telegram_id,)
         )
-        account_id = cursor.fetchone()
+        account = cursor.fetchone()
+        account_id = account[0]
 
 
         connection.commit()

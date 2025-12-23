@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from utils.singleton import singleton
 
+
+@singleton
 @dataclass
 class AppContext:
     """Custom runtime context schema."""
