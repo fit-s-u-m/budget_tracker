@@ -3,6 +3,11 @@ get_accounts_by_teleram_id_query = '''
     FROM accounts
     WHERE telegram_id = ?;
 '''
+get_category_name = '''
+    SELECT name
+    FROM categories
+    WHERE id = ?;
+'''
 get_account_transactions_query = '''
     SELECT 
         t.id,
@@ -62,7 +67,7 @@ get_monthly_spending_summary_query = '''
 '''
 
 get_latest_transaction_query = '''
-    SELECT t.id, t.amount, t.type, t.reason, t.created_at
+    SELECT t.id, t.amount, t.type, t.reason,t.category_id, t.created_at
     FROM transactions t
     JOIN accounts a ON t.account_id = a.id
     WHERE a.telegram_id = ?

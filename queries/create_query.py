@@ -30,6 +30,7 @@ create_transaction_table = '''
     category_id INTEGER,
     amount INTEGER NOT NULL,
     type TEXT CHECK(type IN ('debit', 'credit')) NOT NULL,
+    status TEXT DEFAULT 'active',
     reason TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES accounts(id),

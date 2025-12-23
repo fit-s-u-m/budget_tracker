@@ -5,7 +5,7 @@ from queries import (
     update_query,
     get_query,
 )
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 DB_PATH = "app.db"
 
@@ -113,11 +113,14 @@ def fetch_current_balance(account_id: int, telegram_id: int) -> int:
     return row[0] if row else 0
 
 # ---------------- TRANSACTIONS ----------------
-def fetch_transactions_for_user(telegram_id: int) -> List[Dict]:
+def fetch_transactions_for_user(telegram_id: int,limit: Optional[int] = None) -> List[Dict]:
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(get_query.get_account_transactions_query, (telegram_id,))
-        rows = cursor.fetchall()
+        if limit is not None:
+            rows = cursor.fetchmany(limit)
+        else:
+            rows = cursor.fetchall()
     return [
         {
             "id": r[0],
@@ -137,8 +140,12 @@ def fetch_latest_transaction(telegram_id: int) -> Dict:
         cursor = conn.cursor()
         cursor.execute(get_query.get_latest_transaction_query, (telegram_id,))
         row = cursor.fetchone()
+        print(f"Latest transaction row: {row}")
+
+        cursor.execute(get_query.get_category_name, (row[4],))
+        cat_row = cursor.fetchone()
     if row:
-        return {"id": row[0], "amount": row[1], "type": row[2], "reason": row[3], "created_at": row[4]}
+        return {"id": row[0], "amount": row[1], "type": row[2], "reason": row[3], "created_at": row[5], "category_name":cat_row[0]}
     return {}
 
 def fetch_total_spending_per_category(telegram_id: int) -> List[Dict]:
@@ -154,3 +161,11 @@ def fetch_monthly_spending_summary(telegram_id: int) -> List[Dict]:
         cursor.execute(get_query.get_monthly_spending_summary_query, (telegram_id,))
         rows = cursor.fetchall()
     return [{"month": r[0], "total_spent": r[1], "total_earned": r[2]} for r in rows]
+
+def mark_transaction_undone(txn_id: int):
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE transactions SET status = 'undone' WHERE id = ?", (txn_id,)
+        )
+        conn.commit()

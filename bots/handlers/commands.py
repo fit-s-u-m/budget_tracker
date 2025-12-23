@@ -1,8 +1,18 @@
+from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
-from core.database import insert_transaction, insert_user,create_account,fetch_current_balance,fetch_monthly_spending_summary,fetch_latest_transaction,fetch_total_spending_per_category
+from utils.category import get_category_from_reason 
+from core.database import(
+    insert_transaction,
+    insert_user,
+    create_account,
+    fetch_current_balance,
+    fetch_monthly_spending_summary,
+    fetch_latest_transaction,
+    fetch_total_spending_per_category,
+    fetch_transactions_for_user,
+)
 from bots.context import AppContext
-from queries import insert_query
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("start command invoked")
@@ -68,103 +78,48 @@ async def check_balance_command(update: Update, context: ContextTypes.DEFAULT_TY
             text=f"Your current balance is: {balance:.2f} birr"
         )
 
-async def credit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def transaction_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    typeOf: str  # "credit" or "debit"
+):
     args = context.args
-    print(f"credit command invoked with {args}")
-    if update.message is not None:
-        if not args or len(args) < 2:
-            print("not enough args")
-            await update.message.reply_text(
-                "Usage: /credit <amount> <description>"
-            )
-            return
-        if AppContext().account_id is None:
-            print("account_id is None")
-            await update.message.reply_text(
-                "Please register first using /start command."
-            )
-            return
-        account_id = AppContext().account_id
-        if account_id is None:
-            print("account_id is still None")
-            return
-        category_name = "general"
-        amount = args[0] if args[0].isdigit() else None 
-        reason = " ".join(args[1:])
-        typeOf = "credit"
-        if amount is None:
-            return
+    appContext = AppContext()
+    print(f"{typeOf} command invoked with {args}")
 
-        print(f"Adding transaction to account_id: {account_id}, category_name: {category_name}, amount: {amount}, type: {typeOf}, reason: {reason}")
-        insert_transaction(account_id,category_name,amount,"credit",reason )
+    if update.message is None:
+        return
 
+    if not args or len(args) < 2:
+        await update.message.reply_text(f"Usage: /{typeOf} <amount> <description>")
+        return
 
-    if update.effective_chat is not None:
+    account_id = appContext.account_id
+    if account_id is None:
+        await update.message.reply_text("Please register first using /start command.")
+        return
 
-        account_id = AppContext().account_id
-        telegram_id = AppContext().telegram_id
+    # Parse amount
+    try:
+        amount = int(args[0])
+    except ValueError:
+        await update.message.reply_text("Amount must be a number.")
+        return
 
-        if account_id is None and telegram_id is None:
-            print("account_id is still None")
-            return
+    reason = " ".join(args[1:])
+    category_name = get_category_from_reason(reason)
+
+    # Insert transaction
+    insert_transaction(account_id, category_name, amount, typeOf, reason)
+    print(f"Transaction added: {typeOf} {amount} for account {account_id} ({reason})")
+
+    # Send confirmation
+    telegram_id = appContext.telegram_id
+    if update.effective_chat and account_id and telegram_id:
         balance = fetch_current_balance(account_id, telegram_id)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Transaction credited successfully."
-        )
-        print(f"check_balance command invoked, balance: {balance}")
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"Your current balance is: {balance:.2f} birr"
-        )
-
-async def debit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    print(f"debit command invoked with {args}")
-    if update.message is not None:
-        if not args or len(args) < 2:
-            print("not enough args")
-            await update.message.reply_text(
-                "Usage: /debit <amount> <description>"
-            )
-            return
-        if AppContext().account_id is None:
-            print("account_id is None")
-            await update.message.reply_text(
-                "Please register first using /start command."
-            )
-            return
-        account_id = AppContext().account_id
-        if account_id is None:
-            print("account_id is still None")
-            return
-        category_name = "general"
-        amount = args[0] if args[0].isdigit() else None
-        reason = " ".join(args[1:])
-        typeOf = "debit"
-
-
-        print(f"Adding transaction to account_id: {account_id}, category_name: {category_name}, amount: {amount}, type: {typeOf}, reason: {reason}")
-        insert_transaction(account_id,category_name,amount,typeOf,reason )
-
-
-
-    if update.effective_chat is not None:
-        account_id = AppContext().account_id
-        telegram_id = AppContext().telegram_id
-
-        if account_id is None or telegram_id is None:
-            print("account_id is still None")
-            return
-        balance = fetch_current_balance(account_id, telegram_id)
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Transaction credited successfully."
-        )
-        print(f"check_balance command invoked, balance: {balance}")
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"Your current balance is: {balance:.2f} birr"
+            text=f"✅ Transaction {typeOf} successfully.\n💰 Current balance: {balance:.2f} birr"
         )
 
 async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -228,6 +183,88 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await query.answer()
     await query.edit_message_text(text=f"Selected option: {query.data}")
+
+async def transactions_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    appContext = AppContext()
+    telegram_id = appContext.telegram_id
+    args = context.args
+    if update.message is None:
+        return
+
+    if telegram_id is None:
+        await update.message.reply_text("Please register first using /start command.")
+        return
+
+    limit = None
+    if  args:
+        try:
+            limit = int(args[0])
+        except ValueError:
+            await update.message.reply_text("Amount must be a number.")
+            return
+    if telegram_id is None:
+        await update.message.reply_text("Please register first using /start command.")
+        return
+
+    summary_lines = ["📝 Your Recent Transactions"]
+    transactions = fetch_transactions_for_user(telegram_id, limit=limit)
+    
+    for txn in transactions:
+
+        dt = datetime.strptime(txn['created_at'], '%Y-%m-%d %H:%M:%S')
+        pretty_date = dt.strftime('%A, %d %B %Y at %I:%M %p')
+        summary_lines.append(
+            f"🗓 {pretty_date}\n"
+            f"💸 {txn['type'].capitalize()}: {txn['amount']} birr\n"
+            f"📝 Reason: {txn['reason']}\n"
+            f"🏦 Account: {txn['account_name']}, Category: {txn['category_name']}\n"
+            f"------------------------------\n"
+        )
+    if update.effective_chat:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="\n".join(summary_lines),
+            parse_mode="Markdown"
+        )
+
+async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    appContext = AppContext()
+    account_id = appContext.account_id
+    telegram_id = appContext.telegram_id
+    if update.message is None:
+        return
+
+    if account_id is None or telegram_id is None:
+        await update.message.reply_text("Please register first using /start command.")
+        return
+
+    # Fetch the latest active transaction
+    latest_txn = fetch_latest_transaction(telegram_id)
+    if not latest_txn or latest_txn.get("status") == "undone":
+        await update.message.reply_text("No transaction to undo.")
+        return
+
+    # Determine reverse type
+    reverse_type = "debit" if latest_txn["type"] == "credit" else "credit"
+    print(latest_txn)
+
+    # Insert a reversing transaction
+    insert_transaction(
+        account_id=account_id,
+        category_name=latest_txn["category_name"],
+        amount=latest_txn["amount"],
+        type=reverse_type,
+        reason=f"Undo: {latest_txn['reason']}"
+    )
+
+    # Mark original transaction as undone (optional)
+    # mark_transaction_undone(latest_txn["id"])
+
+    # Send confirmation
+    balance = fetch_current_balance(account_id, telegram_id)
+    await update.message.reply_text(
+        f"✅ Last transaction has been undone.\n💰 Current balance: {balance:.2f} birr"
+    )
 
 # useful
 # keyboard = [
