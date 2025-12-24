@@ -63,13 +63,13 @@ get_monthly_spending_summary_query = '''
         SUM(CASE WHEN t.type='credit' THEN t.amount ELSE 0 END) AS total_earned
     FROM transactions t
     JOIN accounts a ON t.account_id = a.id
-    WHERE a.telegram_id = ?
+    WHERE a.telegram_id = ? AND t.status='active'
     GROUP BY month
     ORDER BY month DESC;
 '''
 
 get_latest_transaction_query = '''
-    SELECT t.id, t.amount, t.type, t.reason,t.category_id, t.created_at
+    SELECT t.id, t.amount, t.type, t.reason,t.category_id, t.created_at, t.status
     FROM transactions t
     JOIN accounts a ON t.account_id = a.id
     WHERE a.telegram_id = ?

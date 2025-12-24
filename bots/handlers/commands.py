@@ -257,15 +257,14 @@ async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(latest_txn)
 
     # Insert a reversing transaction
-    transaction = insert_transaction(
+    transaction_id = insert_transaction(
         account_id=account_id,
         category_name=latest_txn["category_name"],
         amount=latest_txn["amount"],
         type=reverse_type,
         reason=f"Undo: {latest_txn['reason']}"
     )
-    print(transaction)
-    transaction_id = transaction.get("id")
+    print(f"transaction ->{transaction_id}")
 
     # Mark original transaction as undone (optional)
     mark_transaction_undone(latest_txn["id"])

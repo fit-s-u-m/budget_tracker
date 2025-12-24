@@ -60,7 +60,7 @@ def insert_transaction(account_id: int, category_name: str, amount:int, type:str
         if type =="credit":
             cursor.execute(update_query.add_balance_query, (amount, account_id))
 
-        transaction_id = cursor.fetchone()
+        transaction_id = cursor.lastrowid
         connection.commit()
         print("transaction inserted successfully.")
         return transaction_id
@@ -146,8 +146,9 @@ def fetch_latest_transaction(telegram_id: int) -> Dict:
 
         cursor.execute(get_query.get_category_name, (row[4],))
         cat_row = cursor.fetchone()
+        print(row)
     if row:
-        return {"id": row[0], "amount": row[1], "type": row[2], "reason": row[3], "created_at": row[5], "category_name":cat_row[0]}
+        return {"id": row[0], "amount": row[1], "type": row[2], "reason": row[3], "created_at": row[5], "status": row[6],"category_name":cat_row[0]}
     return {}
 
 def fetch_total_spending_per_category(telegram_id: int) -> List[Dict]:
