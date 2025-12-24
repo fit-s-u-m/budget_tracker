@@ -9,6 +9,8 @@ import os
 import getpass
 from dotenv import load_dotenv
 from typing import List, Dict, Optional
+from datetime import datetime, timedelta
+import random
 
 load_dotenv()
 if "DB_PATH" not in os.environ:
@@ -28,6 +30,7 @@ def initalize_tables():
         cursor.execute(create_query.create_transaction_table)
         cursor.execute(create_query.create_category_table)
         cursor.execute(create_query.create_index)
+        cursor.execute(create_query.create_otp_codes)
 
         connection.commit()
         print("Tables created successfully.")
@@ -49,7 +52,7 @@ def insert_user(telegram_id, name):
         print(f"User inserted successfully.info: {user_info}")
         return user_info
 
-def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str):
+def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str,created_at:Optional[str]=None) -> int:
 
     with sqlite3.connect(DB_PATH) as connection:
         cursor = connection.cursor()
@@ -63,7 +66,7 @@ def insert_transaction(account_id: int, category_name: str, amount:int, type:str
         category_id = cursor.fetchone()
         print(f"category_id: {category_id[0]}")
 
-        cursor.execute(insert_query.insert_transaction_query, (account_id , category_id[0] , amount, type, reason))
+        cursor.execute(insert_query.insert_transaction_query, (account_id , category_id[0] , amount, type, reason,created_at))
         if type =="debit":
             cursor.execute(update_query.subtract_balance_query, (amount, account_id))
         if type =="credit":
@@ -181,3 +184,44 @@ def mark_transaction_undone(txn_id: int):
             "UPDATE transactions SET status = 'undone' WHERE id = ?", (txn_id,)
         )
         conn.commit()
+
+def generate_and_store_otp(telegram_id, account_id, validity_minutes=5):
+    otp = random.randint(100000, 999999)  # 6-digit OTP
+    expires_at = datetime.now() + timedelta(minutes=validity_minutes)
+    
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO otp_codes (telegram_id, account_id, otp, expires_at) VALUES (?,?, ?, ?)",
+            (telegram_id,account_id, otp, expires_at)
+        )
+        conn.commit()
+    return otp
+
+def verify_otp(entered_otp):
+    print(f"Verifying OTP: {entered_otp}")
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT telegram_id,account_id, expires_at FROM otp_codes WHERE otp = ?",
+            (entered_otp,)
+        )
+        row = cursor.fetchone()
+        print(f"OTP verification row: {row}")
+        if row:
+            telegram_id, account_id, expires_at_str = row
+            expires_at = datetime.fromisoformat(expires_at_str)
+            
+            if datetime.now() > expires_at:
+                # OTP expired
+                print("OTP has expired.")
+                cursor.execute("DELETE FROM otp_codes WHERE otp = ?", (entered_otp,))
+                conn.commit()
+                return None
+            
+            # OTP is valid; remove it after use
+            cursor.execute("DELETE FROM otp_codes WHERE otp = ?", (entered_otp,))
+            conn.commit()
+            print(telegram_id,account_id)
+            return (telegram_id,account_id)
+    return None

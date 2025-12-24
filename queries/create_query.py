@@ -41,3 +41,12 @@ create_index = '''
     CREATE INDEX IF NOT EXISTS idx_accounts_telegram_id
     ON accounts(telegram_id);
 '''
+create_otp_codes = '''
+    CREATE TABLE IF NOT EXISTS otp_codes (
+        telegram_id INTEGER NOT NULL,
+        account_id  INTEGER NOT NULL,
+        otp INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME NOT NULL
+    );
+'''

@@ -1,6 +1,6 @@
-from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
+import os
 from utils.category import get_category_from_reason 
 from core.database import(
     insert_transaction,
@@ -12,6 +12,7 @@ from core.database import(
     fetch_total_spending_per_category,
     mark_transaction_undone,
     fetch_transactions_for_user,
+    generate_and_store_otp,
 )
 from bots.context import AppContext
 
@@ -26,14 +27,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             insert_user(telegram_id, name)
             account_id = create_account(telegram_id, name)
 
+            validity_minutes = 10
+            url = os.environ["FRONTEND_URL"]
+            otp = generate_and_store_otp(telegram_id,account_id, validity_minutes)
+
             AppContext().first_name = name
             AppContext().userName = user.username
             AppContext().telegram_id = telegram_id
             AppContext().account_id = account_id
 
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text="Successfully registered! Welcome to the Budget Bot."
+            await update.message.reply_text(
+                f"Successfully registered! Welcome to the Budget Bot.\n"
+                f"Your OTP is: {otp}\n"
+                f"It will expire in {validity_minutes} minutes.\n\n"
+                f"It is used to login to our website at `{url}`",
+                parse_mode="Markdown"
             )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

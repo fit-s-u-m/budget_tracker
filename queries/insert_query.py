@@ -14,6 +14,6 @@ insert_category_query ='''
     VALUES (?, ?)
 '''
 insert_transaction_query ='''
-    INSERT INTO transactions (account_id, category_id, amount, type, reason)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO transactions (account_id, category_id, amount, type, reason,created_at)
+    VALUES (?, ?, ?, ?, ?,?)
 '''

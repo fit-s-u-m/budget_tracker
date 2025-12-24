@@ -7,6 +7,7 @@ class TransactionRequest(BaseModel):
     amount: int
     category: str
     reason: Optional[str] = None
+    created_at: Optional[str] = None
     type_:Literal["credit", "debit"] = "debit"
 
 
