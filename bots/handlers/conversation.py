@@ -46,6 +46,8 @@ async def handle_transaction_amount(update: Update, context: ContextTypes.DEFAUL
         account_id = app_context.account_id
         telegram_id = app_context.telegram_id
         if account_id is None or telegram_id is None:
+            await update.message.reply_text(f"transaction aborted.No account found. run /start command to register.")
+            print("Telegram ID or Account ID is None, aborting transaction.")
             return ConversationHandler.END
         balance = fetch_current_balance(account_id, telegram_id)
 
@@ -91,6 +93,7 @@ async def handle_transaction_reason(update: Update, context: ContextTypes.DEFAUL
 
     if account_id is None or telegram_id is None:
         print("No account found, aborting transaction.run  /start command to register.")
+        await update.message.reply_text(f"transaction aborted.No account found. run /start command to register.")
         return ConversationHandler.END
 
     context.user_data["reason"] = update.message.text
@@ -100,6 +103,7 @@ async def handle_transaction_reason(update: Update, context: ContextTypes.DEFAUL
         amount = int(user_data["amount"])
     except ValueError:
         print("Invalid amount, aborting transaction.")
+        await update.message.reply_text(f"transaction aborted.Invalid amount.")
         return ConversationHandler.END
 
     insert_transaction(account_id, category_name, amount, user_data["type"], user_data["reason"])

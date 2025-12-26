@@ -116,7 +116,9 @@ async def transaction_command(
         return
 
     reason = " ".join(args[1:])
+    print(f"Parsed reason: {reason}")
     category_name = get_category_from_reason(reason)
+    print(f"Determined category: {category_name}")
 
     # Insert transaction
     insert_transaction(account_id, category_name, amount, typeOf, reason)

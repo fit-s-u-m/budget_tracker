@@ -55,6 +55,7 @@ def insert_user(telegram_id, name):
         return user_info
 
 def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str, created_at: Optional[datetime] = None):
+    # print("")
     with get_conn() as connection:
         with connection.cursor() as cursor:
             if amount <= 0:
@@ -62,7 +63,11 @@ def insert_transaction(account_id: int, category_name: str, amount:int, type:str
             # Insert category
             cursor.execute(insert_query.insert_category_query, (category_name, type))
             category = cursor.fetchone()
-            print(category)
+            if category is None:
+                # Category already exists, fetch it
+                cursor.execute("SELECT id, name, type FROM categories WHERE name = %s", (category_name,))
+                category = cursor.fetchone()
+            print(category,category_name)
             category_id = category[0] if category else None
 
             # Insert transaction
