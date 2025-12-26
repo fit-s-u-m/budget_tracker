@@ -1,11 +1,25 @@
 from custom_types import TransactionRequest
 from core.database import fetch_current_balance,fetch_monthly_spending_summary,fetch_transactions_for_user,insert_transaction, verify_otp
 
+import os
+from bots.bot import init_bot
+from dotenv import load_dotenv
+import getpass
+from core.database import initalize_tables
+from telegram import Update
 
-from fastapi import FastAPI
+from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
 
 import logging
+
+load_dotenv()
+if "TELEGRAM_API_KEY" not in os.environ:
+    os.environ["TELEGRAM_API_KEY"] = getpass.getpass("Enter your Telegram bot token key: ")
+if "WEBHOOK_URL" not in os.environ:
+    os.environ["WEBHOOK_URL"] = getpass.getpass("Enter WEBHOOK URL")
+
+TOKEN = os.environ["TELEGRAM_API_KEY"]
 
 # Configure basic logging
 logging.basicConfig(
@@ -19,6 +33,7 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     app = FastAPI()
     origins = ["*"]
+    telegram_app = init_bot(TOKEN)
 
     app.add_middleware(
         CORSMiddleware,
@@ -27,6 +42,21 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.on_event("startup")
+    async def startup():
+        initalize_tables()
+        await telegram_app.initialize()
+        await telegram_app.bot.set_webhook(
+            url=f"{os.environ['WEBHOOK_URL']}/telegram/webhook"
+    )
+
+    @app.post("/telegram/webhook")
+    async def telegram_webhook(request: Request):
+        data = await request.json()
+        update = Update.de_json(data, telegram_app.bot)
+        await telegram_app.process_update(update)
+        return {"ok": True}
 
 
     @app.get("/")

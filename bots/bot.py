@@ -60,6 +60,5 @@ def init_bot(token: str) -> Application:
     # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     app.add_handler(conv_handler)
-    app.run_polling()
 
     return app
