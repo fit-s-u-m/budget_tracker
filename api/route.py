@@ -77,6 +77,7 @@ def create_app() -> FastAPI:
         Example: GET /transactions?limit=10&telegram_id=123456
         """
         transactions = fetch_transactions_for_user(telegram_id = telegram_id, limit = limit)
+        print(transactions)
         return transactions
 
     @app.get("/monthly_summary")

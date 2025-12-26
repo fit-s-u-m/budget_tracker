@@ -1,14 +1,14 @@
 CATEGORY_KEYWORDS = {
-    "food": ["lunch", "dinner", "restaurant", "meal", "coffee","drink"],
-    "transport": ["taxi", "bus", "ride", "train", "fuel", "gas"],
-    "shopping": ["mall", "clothes", "shoes", "electronics"],
-    "salary": ["salary", "income", "paycheck"],
-    "health": ["doctor", "medicine", "hospital", "pharmacy", "clinic", "dentist", "healthcare", "checkup", "therapy", "eyewear","braces"],
-    "charity": ["donation", "charity", "fundraising", "sponsorship", "contribution"],
+    "food": ["lunch", "dinner", "restaurant", "meal", "coffee","drink","food"],
+    "transport": ["taxi", "bus", "ride", "train", "fuel", "gas","transport"],
+    "shopping": ["mall", "clothes", "shoes", "electronics","shopping"],
+    "salary": ["salary", "income", "paycheck","salary"],
+    "health": ["doctor", "medicine", "hospital", "pharmacy", "clinic", "dentist", "healthcare", "checkup", "therapy", "eyewear","braces","health"],
+    "charity": ["donation", "charity", "fundraising", "sponsorship", "contribution","charity"],
     "personal_care": ["haircut", "spa", "salon", "cosmetic", "massage", "skincare", "makeup", "barber"],
-    "utilities": ["electricity", "water", "internet", "phone", "mobile", "gas bill", "utility", "broadband"],
-    "housing": ["rent", "mortgage", "apartment", "house", "landlord", "property", "maintenance"],
-    "entertainment": ["movie", "netflix", "game", "concert"],
+    "utilities": ["electricity", "water", "internet", "phone", "mobile", "gas bill", "utility", "broadband","utilities"],
+    "housing": ["rent", "mortgage", "apartment", "house", "landlord", "property", "maintenance","house"],
+    "entertainment": ["movie", "netflix", "game", "concert","entertainment"],
 }
 def get_category_from_reason(reason: str) -> str:
     reason_lower = reason.lower()
