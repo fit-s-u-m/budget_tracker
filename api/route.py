@@ -150,10 +150,10 @@ def create_app() -> FastAPI:
                     "id": x[0],
                     "amount": x[1],
                     "type": x[2],
-                    "reason": x[3],
-                    "created_at": x[4],
+                    "description": x[3],
+                    "date": x[4],
                     "account_name": x[5],
-                    "category_name": x[6],
+                    "category": x[6],
                 }
                 for x in results
             ]
