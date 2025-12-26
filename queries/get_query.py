@@ -83,3 +83,24 @@ get_latest_transaction_query = sql.SQL('''
     ORDER BY t.created_at DESC
     LIMIT 1;
 ''')
+# search transactions
+search_transactions_query = sql.SQL('''
+    SELECT
+        t.id,
+        t.amount,
+        t.type,
+        t.reason,
+        t.created_at,
+        a.name  AS account_name,
+        c.name  AS category_name
+    FROM transactions t
+    JOIN accounts a ON t.account_id = a.id
+    LEFT JOIN categories c ON t.category_id = c.id
+    WHERE a.telegram_id = %s
+        AND (%s IS NULL OR t.type = %s)
+        AND (%s IS NULL OR t.category_id = %s)
+        AND (%s IS NULL OR t.created_at >= %s)
+        AND (%s IS NULL OR t.created_at <= %s)
+    ORDER BY t.created_at DESC
+    LIMIT %s OFFSET %s;
+''')

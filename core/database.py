@@ -247,3 +247,43 @@ def verify_otp(entered_otp):
             print(telegram_id,account_id)
             return (telegram_id,account_id)
     return None
+
+def search_transactions(
+    telegram_id: int,
+    text: str | None = None,
+    category_id: int | None = None,
+    tx_type: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    base_query = """
+    SELECT
+        t.id, t.amount, t.type, t.reason, t.created_at,
+        a.name AS account_name,
+        c.name AS category_name
+    FROM transactions t
+    JOIN accounts a ON t.account_id = a.id
+    LEFT JOIN categories c ON t.category_id = c.id
+    WHERE a.telegram_id = %s
+    """
+    
+    params = [telegram_id]
+
+    if tx_type:
+        base_query += " AND t.type = %s"
+        params.append(tx_type)
+
+    if category_id:
+        base_query += " AND t.category_id = %s"
+        params.append(category_id)
+
+    if text:
+        base_query += " AND t.reason ILIKE %s"
+        params.append(f"%{text}%")
+
+    base_query += " ORDER BY t.created_at DESC LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
+
+    with get_conn() as conn, conn.cursor() as cursor:
+        cursor.execute(base_query, params)
+        return cursor.fetchall()

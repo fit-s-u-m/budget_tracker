@@ -44,9 +44,22 @@ CREATE TABLE IF NOT EXISTS transactions (
 ''')
 
 create_index = sql.SQL('''
-CREATE INDEX IF NOT EXISTS idx_accounts_telegram_id
-ON accounts(telegram_id);
+    CREATE INDEX IF NOT EXISTS idx_accounts_telegram_id
+    ON accounts(telegram_id);
+
+    CREATE INDEX idx_transactions_account_id
+    ON transactions (account_id);
+
+    CREATE INDEX idx_transactions_created_at
+    ON transactions (created_at DESC);
+
+    CREATE INDEX idx_transactions_type
+    ON transactions (type);
+
+    CREATE INDEX idx_transactions_category_id
+    ON transactions (category_id);
 ''')
+
 
 create_otp_codes = sql.SQL('''
 CREATE TABLE IF NOT EXISTS otp_codes (

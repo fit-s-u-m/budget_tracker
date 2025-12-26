@@ -1,5 +1,5 @@
 from custom_types import TransactionRequest
-from core.database import fetch_current_balance,fetch_monthly_spending_summary,fetch_transactions_for_user,insert_transaction, verify_otp
+from core.database import fetch_current_balance,fetch_monthly_spending_summary,fetch_transactions_for_user,insert_transaction, verify_otp,search_transactions
 
 import os
 from bots.bot import init_bot
@@ -7,8 +7,9 @@ from dotenv import load_dotenv
 import getpass
 from core.database import initalize_tables
 from telegram import Update
+from typing import Optional
 
-from fastapi import FastAPI,Request
+from fastapi import FastAPI,Request,Query,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 import logging
@@ -123,4 +124,30 @@ def create_app() -> FastAPI:
             print(resp)
             return {"telegram_id": telgram_id, "account_id": account_id, "status": "verified"}
         return {"status": "invalid OTP"}
+
+    @app.get("/transactions/search")
+    def search_transactions_route(
+        telegram_id: int = Query(..., description="Telegram user id"),
+        text: Optional[str] = Query(None, description="Search in reason"),
+        category_id: Optional[int] = Query(None),
+        tx_type: Optional[str] = Query(None, regex="^(income|expense)$"),
+        limit: int = Query(50, ge=1, le=100),
+        offset: int = Query(0, ge=0),
+    ):
+        try:
+            results = search_transactions(
+                telegram_id=telegram_id,
+                text=text,
+                category_id=category_id,
+                tx_type=tx_type,
+                limit=limit,
+                offset=offset,
+            )
+            return {
+                "count": len(results),
+                "items": results,
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
     return app
