@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
     name TEXT NOT NULL,
-    balance INTEGER DEFAULT 0,
+    balance INTEGER NOT NULL CHECK (amount >= 0) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
 );
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
     account_id INTEGER NOT NULL,
     category_id INTEGER,
-    amount INTEGER NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount >= 0),
     type TEXT CHECK(type IN ('debit', 'credit')) NOT NULL,
     status TEXT DEFAULT 'active',
     reason TEXT,

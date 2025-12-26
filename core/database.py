@@ -52,19 +52,24 @@ def insert_user(telegram_id, name):
         print(f"User inserted successfully.info: {user_info}")
         return user_info
 
-def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str, created_at: Optional[datetime] = None) -> int:
+def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str, created_at: Optional[datetime] = None):
     with get_conn() as connection:
         with connection.cursor() as cursor:
+            if amount <= 0:
+                raise ValueError("Amount must be a positive integer.")
             # Insert category
             cursor.execute(insert_query.insert_category_query, (category_name, type))
-            category_id = cursor.fetchone()[0]
+            category = cursor.fetchone()
+            print(category)
+            category_id = category[0] if category else None
 
             # Insert transaction
             cursor.execute(
                 insert_query.insert_transaction_query,
                 (account_id, category_id, amount, type, reason, created_at)
             )
-            transaction_id = cursor.fetchone()[0]
+            transaction = cursor.fetchone()
+            transaction_id = transaction[0] if transaction else None
 
             print(f"Transaction inserted successfully.id: {transaction_id}")
 
