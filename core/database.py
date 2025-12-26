@@ -236,9 +236,7 @@ def verify_otp(entered_otp):
         row = cursor.fetchone()
         print(f"OTP verification row: {row}")
         if row:
-            telegram_id, account_id, expires_at_str = row
-            expires_at = datetime.fromisoformat(expires_at_str)
-            
+            telegram_id, account_id, expires_at= row
             if datetime.now() > expires_at:
                 # OTP expired
                 print("OTP has expired.")
