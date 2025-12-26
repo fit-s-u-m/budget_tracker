@@ -47,16 +47,16 @@ create_index = sql.SQL('''
     CREATE INDEX IF NOT EXISTS idx_accounts_telegram_id
     ON accounts(telegram_id);
 
-    CREATE INDEX idx_transactions_account_id
+    CREATE INDEX IF NOT EXISTS idx_transactions_account_id
     ON transactions (account_id);
 
-    CREATE INDEX idx_transactions_created_at
+    CREATE INDEX IF NOT EXISTS idx_transactions_created_at
     ON transactions (created_at DESC);
 
-    CREATE INDEX idx_transactions_type
+    CREATE INDEX IF NOT EXISTS idx_transactions_type
     ON transactions (type);
 
-    CREATE INDEX idx_transactions_category_id
+    CREATE INDEX IF NOT EXISTS idx_transactions_category_id
     ON transactions (category_id);
 ''')
 
