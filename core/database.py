@@ -249,7 +249,7 @@ def verify_otp(entered_otp):
     return None
 
 def search_transactions(
-    telegram_id: int,
+    telegram_id: str,
     text: str | None = None,
     category_id: int | None = None,
     tx_type: str | None = None,

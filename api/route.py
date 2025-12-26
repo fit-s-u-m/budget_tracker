@@ -128,7 +128,7 @@ def create_app() -> FastAPI:
 
     @app.get("/transactions/search")
     def search_transactions_route(
-        telegram_id: int = Query(..., description="Telegram user id"),
+        telegram_id: str = Query(..., description="Telegram user id"),
         text: Optional[str] = Query(None, description="Search in reason"),
         category_id: Optional[int] = Query(None),
         tx_type: Optional[str] = Query(None, regex="^(income|expense)$"),
@@ -144,10 +144,20 @@ def create_app() -> FastAPI:
                 limit=limit,
                 offset=offset,
             )
-            return {
-                "count": len(results),
-                "items": results,
-            }
+
+            response = [
+                {
+                    "id": x[0],
+                    "amount": x[1],
+                    "type": x[2],
+                    "reason": x[3],
+                    "created_at": x[4],
+                    "account_name": x[5],
+                    "category_name": x[6],
+                }
+                for x in results
+            ]
+            return  response
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
