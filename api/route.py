@@ -16,8 +16,6 @@ import logging
 load_dotenv()
 if "TELEGRAM_API_KEY" not in os.environ:
     os.environ["TELEGRAM_API_KEY"] = getpass.getpass("Enter your Telegram bot token key: ")
-# if "WEBHOOK_URL" not in os.environ:
-#     os.environ["WEBHOOK_URL"] = getpass.getpass("Enter WEBHOOK URL")
 
 TOKEN = os.environ["TELEGRAM_API_KEY"]
 

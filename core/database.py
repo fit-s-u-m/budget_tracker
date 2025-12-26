@@ -11,6 +11,8 @@ import random
 import psycopg
 from dotenv import load_dotenv
 import os
+import asyncio
+from api.websocket import manager
 
 load_dotenv()
 
@@ -79,33 +81,18 @@ def insert_transaction(account_id: int, category_name: str, amount:int, type:str
             elif type == "credit":
                 cursor.execute(update_query.add_balance_query, (amount, account_id))
 
+            asyncio.create_task(manager.broadcast({
+                "action": "new_transaction",
+                "transaction_id": transaction_id,
+                "account_id": account_id,
+                "category": category_name,
+                "amount": amount,
+                "type": type,
+                "reason": reason,
+            }))
+
             connection.commit()
             return transaction_id
-
-# def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str,created_at:Optional[str]=None) -> int:
-#
-#     with get_conn() as connection:
-#         cursor = connection.cursor()
-#
-#         cursor.execute(insert_query.insert_category_query, (category_name, type))
-#
-#         cursor.execute(
-#             "SELECT id FROM categories WHERE name= %s",
-#             (category_name,),
-#         )
-#         category_id = cursor.fetchone()
-#         print(f"category_id: {category_id[0]}")
-#
-#         cursor.execute(insert_query.insert_transaction_query, (account_id , category_id[0] , amount, type, reason,created_at))
-#         if type =="debit":
-#             cursor.execute(update_query.subtract_balance_query, (amount, account_id))
-#         if type =="credit":
-#             cursor.execute(update_query.add_balance_query, (amount, account_id))
-#
-#         transaction_id = cursor.fetchone()[0] 
-#         connection.commit()
-#         print("transaction inserted successfully.")
-#         return transaction_id
 
 # Create a new category in the categories table
 def create_category(name, type):
