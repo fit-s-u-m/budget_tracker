@@ -5,18 +5,11 @@ from queries import (
     update_query,
     get_query,
 )
-import os
-import getpass
-from dotenv import load_dotenv
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import random
 
-load_dotenv()
-if "DB_PATH" not in os.environ:
-    os.environ["DB_PATH"] = getpass.getpass("Enter your database path (e.g., app.db): ")
-
-DB_PATH = os.environ["DB_PATH"]
+DB_PATH = "file::memory:?cache=shared"
 print(DB_PATH)
 
 
