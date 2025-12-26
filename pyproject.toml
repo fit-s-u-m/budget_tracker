@@ -9,6 +9,7 @@ dependencies = [
     "faker>=39.0.0",
     "fastapi[standard]>=0.127.0",
     "pandas>=2.3.3",
+    "psycopg[binary]>=3.3.2",
     "pytelegrambotapi>=4.29.1",
     "python-telegram-bot>=22.5",
 ]

@@ -8,21 +8,28 @@ from queries import (
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import random
+import psycopg
+from dotenv import load_dotenv
+import os
 
-DB_PATH = "file::memory:?cache=shared"
-print(DB_PATH)
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+def get_conn():
+    return psycopg.connect(DATABASE_URL)
 
 
 # Initialize the database and create tables if they do not exist
 def initalize_tables():
-    with sqlite3.connect(DB_PATH) as connection:
+    with get_conn() as connection:
         cursor = connection.cursor()
 
         cursor.execute(create_query.create_user_table)
         cursor.execute(create_query.create_account_table)
-        cursor.execute(create_query.create_transaction_table)
         cursor.execute(create_query.create_category_table)
         cursor.execute(create_query.create_index)
+        cursor.execute(create_query.create_transaction_table)
         cursor.execute(create_query.create_otp_codes)
 
         connection.commit()
@@ -30,13 +37,13 @@ def initalize_tables():
 
 # Insert a new user into the users table
 def insert_user(telegram_id, name):
-    with sqlite3.connect(DB_PATH) as connection:
+    with get_conn() as connection:
         cursor = connection.cursor()
 
         cursor.execute(insert_query.insert_user_query, (telegram_id, name))
         
         cursor.execute(
-            "SELECT id, telegram_id, name FROM users WHERE telegram_id = ?",
+            "SELECT id, telegram_id, name FROM users WHERE telegram_id = %s",
             (telegram_id,),
         )
         user_info = cursor.fetchone()
@@ -45,50 +52,77 @@ def insert_user(telegram_id, name):
         print(f"User inserted successfully.info: {user_info}")
         return user_info
 
-def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str,created_at:Optional[str]=None) -> int:
+def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str, created_at: Optional[datetime] = None) -> int:
+    with get_conn() as connection:
+        with connection.cursor() as cursor:
+            # Insert category
+            cursor.execute(insert_query.insert_category_query, (category_name, type))
+            category_id = cursor.fetchone()[0]
 
-    with sqlite3.connect(DB_PATH) as connection:
-        cursor = connection.cursor()
+            # Insert transaction
+            cursor.execute(
+                insert_query.insert_transaction_query,
+                (account_id, category_id, amount, type, reason, created_at)
+            )
+            transaction_id = cursor.fetchone()[0]
 
-        cursor.execute(insert_query.insert_category_query, (category_name, type))
+            print(f"Transaction inserted successfully.id: {transaction_id}")
 
-        cursor.execute(
-            "SELECT id FROM categories WHERE name= ?",
-            (category_name,),
-        )
-        category_id = cursor.fetchone()
-        print(f"category_id: {category_id[0]}")
+            # Update balance
+            if type == "debit":
+                cursor.execute(update_query.subtract_balance_query, (amount, account_id))
+            elif type == "credit":
+                cursor.execute(update_query.add_balance_query, (amount, account_id))
 
-        cursor.execute(insert_query.insert_transaction_query, (account_id , category_id[0] , amount, type, reason,created_at))
-        if type =="debit":
-            cursor.execute(update_query.subtract_balance_query, (amount, account_id))
-        if type =="credit":
-            cursor.execute(update_query.add_balance_query, (amount, account_id))
+            connection.commit()
+            return transaction_id
 
-        transaction_id = cursor.lastrowid
-        connection.commit()
-        print("transaction inserted successfully.")
-        return transaction_id
+# def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str,created_at:Optional[str]=None) -> int:
+#
+#     with get_conn() as connection:
+#         cursor = connection.cursor()
+#
+#         cursor.execute(insert_query.insert_category_query, (category_name, type))
+#
+#         cursor.execute(
+#             "SELECT id FROM categories WHERE name= %s",
+#             (category_name,),
+#         )
+#         category_id = cursor.fetchone()
+#         print(f"category_id: {category_id[0]}")
+#
+#         cursor.execute(insert_query.insert_transaction_query, (account_id , category_id[0] , amount, type, reason,created_at))
+#         if type =="debit":
+#             cursor.execute(update_query.subtract_balance_query, (amount, account_id))
+#         if type =="credit":
+#             cursor.execute(update_query.add_balance_query, (amount, account_id))
+#
+#         transaction_id = cursor.fetchone()[0] 
+#         connection.commit()
+#         print("transaction inserted successfully.")
+#         return transaction_id
 
 # Create a new category in the categories table
 def create_category(name, type):
-    with sqlite3.connect(DB_PATH) as connection:
+    with get_conn() as connection:
         cursor = connection.cursor()
 
         cursor.execute(insert_query.insert_category_query, (name, type))
 
         connection.commit()
-        print(f"Category inserted successfully.{cursor.lastrowid}")
-        return cursor.lastrowid
+        category = cursor.fetchone()
+        category_id = category[0] if category else None
+        print(f"Category inserted successfully.{category_id}")
+        return category_id
 
 # Create a new account in the accounts table
 def create_account(telegram_id, name):
-    with sqlite3.connect(DB_PATH) as connection:
+    with get_conn() as connection:
         cursor = connection.cursor()
 
         cursor.execute(insert_query.insert_account_query, (telegram_id, name))
         cursor.execute(
-            "SELECT id FROM accounts WHERE telegram_id = ?",
+            "SELECT id FROM accounts WHERE telegram_id = %s",
             (telegram_id,)
         )
         account = cursor.fetchone()
@@ -99,21 +133,21 @@ def create_account(telegram_id, name):
         print("Account inserted successfully.", account_id)
         return account_id
 def fetch_accounts_by_telegram_id(telegram_id: int) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
-        cursor.execute(get_query.get_accounts_by_teleram_id_query, (telegram_id,))
+        cursor.execute(get_query.get_accounts_by_telegram_id_query, (telegram_id,))
         rows = cursor.fetchall()
     return [{"id": r[0], "name": r[1], "balance": r[2], "created_at": r[3]} for r in rows]
 
 def fetch_all_accounts_with_balance(telegram_id: int) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(get_query.get_all_accounts_with_balance_query, (telegram_id,))
         rows = cursor.fetchall()
     return [{"id": r[0], "name": r[1], "balance": r[2]} for r in rows]
 
 def fetch_current_balance(account_id: int, telegram_id: int) -> int:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(get_query.get_current_balance_query, (account_id, telegram_id))
         row = cursor.fetchone()
@@ -121,7 +155,7 @@ def fetch_current_balance(account_id: int, telegram_id: int) -> int:
 
 # ---------------- TRANSACTIONS ----------------
 def fetch_transactions_for_user(telegram_id: int,limit: Optional[int] = None) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(get_query.get_account_transactions_query, (telegram_id,))
         if limit is not None:
@@ -143,7 +177,7 @@ def fetch_transactions_for_user(telegram_id: int,limit: Optional[int] = None) ->
     ]
 
 def fetch_latest_transaction(telegram_id: int) -> Dict:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(get_query.get_latest_transaction_query, (telegram_id,))
         row = cursor.fetchone()
@@ -157,24 +191,24 @@ def fetch_latest_transaction(telegram_id: int) -> Dict:
     return {}
 
 def fetch_total_spending_per_category(telegram_id: int) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(get_query.get_total_spending_per_category_query, (telegram_id,))
         rows = cursor.fetchall()
     return [{"category_name": r[0], "category_type": r[1], "total_amount": r[2]} for r in rows]
 
 def fetch_monthly_spending_summary(telegram_id: int) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(get_query.get_monthly_spending_summary_query, (telegram_id,))
         rows = cursor.fetchall()
     return [{"month": r[0], "total_spent": r[1], "total_earned": r[2]} for r in rows]
 
 def mark_transaction_undone(txn_id: int):
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE transactions SET status = 'undone' WHERE id = ?", (txn_id,)
+            "UPDATE transactions SET status = 'undone' WHERE id = %s", (txn_id,)
         )
         conn.commit()
 
@@ -182,10 +216,10 @@ def generate_and_store_otp(telegram_id, account_id, validity_minutes=5):
     otp = random.randint(100000, 999999)  # 6-digit OTP
     expires_at = datetime.now() + timedelta(minutes=validity_minutes)
     
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO otp_codes (telegram_id, account_id, otp, expires_at) VALUES (?,?, ?, ?)",
+            "INSERT INTO otp_codes (telegram_id, account_id, otp, expires_at) VALUES (%s,%s, %s, %s)",
             (telegram_id,account_id, otp, expires_at)
         )
         conn.commit()
@@ -193,10 +227,10 @@ def generate_and_store_otp(telegram_id, account_id, validity_minutes=5):
 
 def verify_otp(entered_otp):
     print(f"Verifying OTP: {entered_otp}")
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT telegram_id,account_id, expires_at FROM otp_codes WHERE otp = ?",
+            "SELECT telegram_id,account_id, expires_at FROM otp_codes WHERE otp = %s",
             (entered_otp,)
         )
         row = cursor.fetchone()
@@ -208,12 +242,12 @@ def verify_otp(entered_otp):
             if datetime.now() > expires_at:
                 # OTP expired
                 print("OTP has expired.")
-                cursor.execute("DELETE FROM otp_codes WHERE otp = ?", (entered_otp,))
+                cursor.execute("DELETE FROM otp_codes WHERE otp = %s", (entered_otp,))
                 conn.commit()
                 return None
             
             # OTP is valid; remove it after use
-            cursor.execute("DELETE FROM otp_codes WHERE otp = ?", (entered_otp,))
+            cursor.execute("DELETE FROM otp_codes WHERE otp = %s", (entered_otp,))
             conn.commit()
             print(telegram_id,account_id)
             return (telegram_id,account_id)

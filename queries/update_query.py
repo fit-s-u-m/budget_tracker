@@ -1,11 +1,11 @@
-add_balance_query = '''
+from psycopg import sql
+add_balance_query = sql.SQL('''
    UPDATE accounts
-        SET balance = balance + ?
-        WHERE id = ?
-'''
-subtract_balance_query = '''
+        SET balance = balance + %s
+        WHERE id = %s
+''')
+subtract_balance_query = sql.SQL('''
     UPDATE accounts
-        SET balance = balance - ?
-        WHERE id = ?
-
-'''
+        SET balance = balance - %s
+        WHERE id = %s
+''')
