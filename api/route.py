@@ -143,6 +143,7 @@ def create_app() -> FastAPI:
                 limit=limit,
                 offset=offset,
             )
+            print("result from search: - ",results)
 
             response = [
                 {

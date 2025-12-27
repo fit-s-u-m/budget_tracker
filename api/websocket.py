@@ -23,6 +23,7 @@ manager = ConnectionManager()
 
 @app.websocket("/ws/transactions")
 async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept(headers=[("Access-Control-Allow-Origin", "*")])
     await manager.connect(websocket)
     try:
         while True:
