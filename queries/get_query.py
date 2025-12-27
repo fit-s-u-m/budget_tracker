@@ -101,6 +101,6 @@ search_transactions_query = sql.SQL('''
         AND (%s IS NULL OR t.category_id = %s)
         AND (%s IS NULL OR t.created_at >= %s)
         AND (%s IS NULL OR t.created_at <= %s)
-    ORDER BY t.created_at DESC
+    ORDER BY t.created_at DESC NULLS LAST
     LIMIT %s OFFSET %s;
 ''')
