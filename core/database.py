@@ -54,7 +54,7 @@ def insert_user(telegram_id, name):
         print(f"User inserted successfully.info: {user_info}")
         return user_info
 
-def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str, created_at: Optional[datetime] = None):
+def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str):
     # print("")
     with get_conn() as connection:
         with connection.cursor() as cursor:
@@ -73,7 +73,7 @@ def insert_transaction(account_id: int, category_name: str, amount:int, type:str
             # Insert transaction
             cursor.execute(
                 insert_query.insert_transaction_query,
-                (account_id, category_id, amount, type, reason, created_at)
+                (account_id, category_id, amount, type, reason)
             )
             transaction = cursor.fetchone()
             transaction_id = transaction[0] if transaction else None

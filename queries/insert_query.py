@@ -26,7 +26,7 @@ insert_category_query = sql.SQL('''
 
 # Insert transaction
 insert_transaction_query = sql.SQL('''
-    INSERT INTO transactions (account_id, category_id, amount, type, reason, created_at)
-    VALUES (%s, %s, %s, %s, %s, %s)
+    INSERT INTO transactions (account_id, category_id, amount, type, reason)
+    VALUES (%s, %s, %s, %s, %s)
     RETURNING id, account_id, category_id, amount, type, reason, created_at;
 ''')

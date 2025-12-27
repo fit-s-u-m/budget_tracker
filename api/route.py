@@ -106,7 +106,6 @@ def create_app() -> FastAPI:
             account_id=txn.account_id,
             amount=txn.amount,
             reason=txn.reason,
-            created_at=txn.created_at,
             category_name=txn.category,
             type=txn.type_,
         )
