@@ -1,8 +1,5 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from typing import List
-
-app = FastAPI()
-
 # Manage connected clients
 class ConnectionManager:
     def __init__(self):
@@ -21,17 +18,19 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@app.websocket("/ws/transactions")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept(headers=[("Access-Control-Allow-Origin", "*")])
-    await manager.connect(websocket)
-    try:
-        while True:
-            data = await websocket.receive_json()  # Receive messages from client
-            print(f"Received: {data}")
-            # Optionally, broadcast it to all other clients
-            await manager.broadcast(data)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        print("Client disconnected")
+def connect_websocket_app(app: FastAPI):
+
+    @app.websocket("/ws/transactions")
+    async def websocket_endpoint(websocket: WebSocket):
+        await websocket.accept(headers=[("Access-Control-Allow-Origin", "*")])
+        await manager.connect(websocket)
+        try:
+            while True:
+                data = await websocket.receive_json()  # Receive messages from client
+                print(f"Received: {data}")
+                # Optionally, broadcast it to all other clients
+                await manager.broadcast(data)
+        except WebSocketDisconnect:
+            manager.disconnect(websocket)
+            print("Client disconnected")
 
