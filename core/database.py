@@ -252,6 +252,7 @@ def search_transactions(
     telegram_id: str,
     text: str | None = None,
     category_id: int | None = None,
+    created_at: str | None = None,
     tx_type: str | None = None,
     limit: int = 50,
     offset: int = 0,
@@ -275,14 +276,18 @@ def search_transactions(
 
     if category_id:
         base_query += " AND t.category_id = %s"
-        params.append(category_id)
+        params.append(str(category_id))
+
+    if created_at:
+        base_query += " AND DATE(t.created_at) = %s"
+        params.append(created_at)
 
     if text:
         base_query += " AND t.reason ILIKE %s"
         params.append(f"%{text}%")
 
     base_query += " ORDER BY t.created_at DESC LIMIT %s OFFSET %s"
-    params.extend([limit, offset])
+    params.extend([ str(limit), str(offset) ])
 
     with get_conn() as conn, conn.cursor() as cursor:
         cursor.execute(base_query, params)
