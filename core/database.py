@@ -292,3 +292,9 @@ def search_transactions(
     with get_conn() as conn, conn.cursor() as cursor:
         cursor.execute(base_query, params)
         return cursor.fetchall()
+def count_total_transactions():
+    with get_conn() as conn, conn.cursor() as cursor:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) as total FROM transactions")
+        total = cursor.fetchone()["total"]
+        return total

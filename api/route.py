@@ -1,5 +1,5 @@
 from custom_types import TransactionRequest
-from core.database import fetch_current_balance,fetch_monthly_spending_summary,fetch_transactions_for_user,insert_transaction, verify_otp,search_transactions
+from core.database import fetch_current_balance,fetch_monthly_spending_summary,fetch_transactions_for_user,insert_transaction, verify_otp,search_transactions,count_total_transactions
 
 import os
 from bots.bot import init_bot
@@ -162,5 +162,10 @@ def create_app() -> FastAPI:
             return  response
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/transactions/count")
+    def count_transactions():
+        count_total = count_total_transactions()
+        return {"total": count_total}
 
     return app
