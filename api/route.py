@@ -90,7 +90,7 @@ def create_app() -> FastAPI:
         return summary
     
     @app.post("/transaction")
-    def add_transaction(txn: TransactionRequest):
+    async def add_transaction(txn: TransactionRequest):
         """
         Add a new transaction for a user using JSON body:
         {
@@ -102,7 +102,7 @@ def create_app() -> FastAPI:
             "created_at":"2024-10-01T12:00:00"
         }
         """
-        transaction_id = insert_transaction(
+        transaction_id = await insert_transaction(
             account_id=txn.account_id,
             amount=txn.amount,
             reason=txn.reason,

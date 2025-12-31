@@ -106,7 +106,7 @@ async def handle_transaction_reason(update: Update, context: ContextTypes.DEFAUL
         await update.message.reply_text(f"transaction aborted.Invalid amount.")
         return ConversationHandler.END
 
-    insert_transaction(account_id, category_name, amount, user_data["type"], user_data["reason"])
+    await insert_transaction(account_id, category_name, amount, user_data["type"], user_data["reason"])
 
     balance = fetch_current_balance(account_id, telegram_id)
 

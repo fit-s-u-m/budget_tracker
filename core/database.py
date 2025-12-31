@@ -54,7 +54,7 @@ def insert_user(telegram_id, name):
         print(f"User inserted successfully.info: {user_info}")
         return user_info
 
-def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str):
+async def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str):
     # print("")
     with get_conn() as connection:
         with connection.cursor() as cursor:
