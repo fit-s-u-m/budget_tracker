@@ -301,7 +301,7 @@ def count_total_transactions():
         total = count[0] if count else 0
         return total
 
-def undo_transaction(
+def undo_transaction_db(
     transaction_id: int,
 ):
     with get_conn() as conn:
@@ -316,9 +316,13 @@ def undo_transaction(
         mark_transaction_undone(new_tx_id)
         conn.commit()
         return new_tx_id
-def update_transaction(tx_id: int, amount: int,category_id: int, tx_type: str, reason: str):
+def update_transaction_db(tx_id: int, amount: int,category_id: int, tx_type: str, reason: Optional[str]=None):
     with get_conn() as conn:
         cursor = conn.cursor()
+        if reason is None:
+            reason = ""
+        if amount <= 0:
+            raise ValueError("Amount must be a positive integer.")
         cursor.execute(
             update_query.update_transaction_query,
             (tx_id, amount, tx_type, category_id, reason, tx_id)

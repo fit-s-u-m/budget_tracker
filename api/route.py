@@ -7,8 +7,8 @@ from core.database import(
     verify_otp,
     search_transactions,
     count_total_transactions,
-    undo_transaction,
-    update_transaction,
+    undo_transaction_db,
+    update_transaction_db,
 )
 
 import os
@@ -180,13 +180,13 @@ def create_app() -> FastAPI:
 
     @app.post("/transaction/undo")
     def undo_transaction(transaction_id: int):
-        undo = undo_transaction(transaction_id)
+        undo = undo_transaction_db(transaction_id)
         print("Undo transaction result: - ",undo)
         return {"transaction_id": transaction_id, "status": "undone" if undo else "failed"}
 
     @app.post("/transaction/update")
-    def update_transaction(transaction_id:int, type:str, amount:float, category_id:int, reason:Optional[str]=None):
-        update = update_transaction(transaction_id, type, amount, category_id, reason)
+    def update_transaction(transaction_id:int, tx_type: str, amount: int, category_id:int, reason:Optional[str]=None):
+        update = update_transaction_db(transaction_id, amount , category_id ,tx_type , reason)
         return {"transaction_id": transaction_id, "status": "updated" if update else "failed"}
 
     return app
