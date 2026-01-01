@@ -36,12 +36,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             AppContext().telegram_id = telegram_id
             AppContext().account_id = account_id
 
+
             await update.message.reply_text(
-                f"Successfully registered! Welcome to the Budget Bot.\n"
-                f"Your OTP is: {otp}\n"
-                f"It will expire in {validity_minutes} minutes.\n\n"
-                f"It is used to login to our website at `{url}`",
-                parse_mode="Markdown"
+                f"Successfully registered! Welcome to the Budget Bot.\n\n"
+                f"Your OTP:\n"
+                f"`{otp}`\n\n"
+                f"It will expire in {validity_minutes} minutes.\n"
+                f"Login here: {url}",
+                parse_mode="MarkdownV2"
             )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
