@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS otp_codes (
     expires_at TIMESTAMP NOT NULL
 );
 ''')
-create_auto_update = sql.Sql('''
+create_auto_update = sql.SQL('''
     CREATE OR REPLACE FUNCTION set_updated_at()
     RETURNS TRIGGER AS $$
     BEGIN
