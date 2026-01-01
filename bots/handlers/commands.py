@@ -20,31 +20,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("start command invoked")
     if update.effective_chat is not None:
         if update.message and update.message.from_user:
-            user = update.message.from_user
-            telegram_id = user.id
-            name = user.first_name
+            try:
+                user = update.message.from_user
+                telegram_id = user.id
+                name = user.first_name
 
-            insert_user(telegram_id, name)
-            account_id = create_account(telegram_id, name)
+                insert_user(telegram_id, name)
+                account_id = create_account(telegram_id, name)
 
-            validity_minutes = 10
-            url = os.environ["FRONTEND_URL"]
-            otp = generate_and_store_otp(telegram_id,account_id, validity_minutes)
+                validity_minutes = 10
+                url = os.environ["FRONTEND_URL"]
+                otp = generate_and_store_otp(telegram_id,account_id, validity_minutes)
 
-            AppContext().first_name = name
-            AppContext().userName = user.username
-            AppContext().telegram_id = telegram_id
-            AppContext().account_id = account_id
+                AppContext().first_name = name
+                AppContext().userName = user.username
+                AppContext().telegram_id = telegram_id
+                AppContext().account_id = account_id
 
 
-            await update.message.reply_text(
-                f"Successfully registered! Welcome to the Budget Bot.\n\n"
-                f"Your OTP:\n"
-                f"`{otp}`\n\n"
-                f"It will expire in {validity_minutes} minutes.\n"
-                f"Login here: {url}",
-                parse_mode="MarkdownV2"
-            )
+                await update.message.reply_text(
+                    f"Successfully registered! Welcome to the Budget Bot.\n\n"
+                    f"Your OTP:\n"
+                    f"`{otp}`\n\n"
+                    f"It will expire in {validity_minutes} minutes.\n"
+                    f"It is used to login to our website at [{url}]({url})",
+                    parse_mode="MarkdownV2"
+                )
+            except Exception as e:
+                await update.message.reply_text("error during registration. Please try again later.")
+                print(f"Error in start command: {e}")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("help command invoked")
