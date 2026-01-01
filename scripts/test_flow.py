@@ -10,7 +10,6 @@ WS_URL = "ws://127.0.0.1:8000/ws/transactions"
 
 # Use a consistent telegram_id for testing
 TEST_TELEGRAM_ID = 123456789
-TEST_ACCOUNT_ID = 1
 
 def test_root():
     print("--- Testing Root ---")
@@ -23,7 +22,7 @@ def test_root():
 
 def test_balance():
     print("\n--- Testing /balance ---")
-    params = {"account_id": TEST_ACCOUNT_ID, "telegram_id": TEST_TELEGRAM_ID}
+    params = {"telegram_id": TEST_TELEGRAM_ID}
     try:
         response = requests.get(f"{BASE_URL}/balance", params=params)
         print(f"Response: {response.json()}")
@@ -71,7 +70,7 @@ async def test_websocket_and_transaction():
             
             # Add a transaction via API
             payload = {
-                "account_id": TEST_ACCOUNT_ID,
+                "telegram_id": TEST_TELEGRAM_ID,
                 "amount": 42.0,
                 "category": "Test-Category",
                 "type_": "debit",

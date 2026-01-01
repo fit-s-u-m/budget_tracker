@@ -43,13 +43,12 @@ async def handle_transaction_amount(update: Update, context: ContextTypes.DEFAUL
     try:
         amount = int(update.message.text)
         app_context = AppContext()
-        account_id = app_context.account_id
         telegram_id = app_context.telegram_id
-        if account_id is None or telegram_id is None:
-            await update.message.reply_text(f"transaction aborted.No account found. run /start command to register.")
-            print("Telegram ID or Account ID is None, aborting transaction.")
+        if  telegram_id is None:
+            await update.message.reply_text(f"transaction aborted. No account found. run /start command to register.")
+            print("Telegram ID  is None, aborting transaction.")
             return ConversationHandler.END
-        balance = fetch_current_balance(account_id, telegram_id)
+        balance = fetch_current_balance(telegram_id)
 
         if context.user_data and  context.user_data["type"] == "debit" and amount > balance:
             reply_keyboard = [["Debit", "Credit"]]
@@ -88,10 +87,9 @@ async def handle_transaction_reason(update: Update, context: ContextTypes.DEFAUL
     if not context.user_data or not update.message:
          return ConversationHandler.END
     appContext = AppContext()
-    account_id = appContext.account_id
     telegram_id = appContext.telegram_id
 
-    if account_id is None or telegram_id is None:
+    if  telegram_id is None:
         print("No account found, aborting transaction.run  /start command to register.")
         await update.message.reply_text(f"transaction aborted.No account found. run /start command to register.")
         return ConversationHandler.END
@@ -106,9 +104,9 @@ async def handle_transaction_reason(update: Update, context: ContextTypes.DEFAUL
         await update.message.reply_text(f"transaction aborted.Invalid amount.")
         return ConversationHandler.END
 
-    await insert_transaction(account_id, category_name, amount, user_data["type"], user_data["reason"])
+    await insert_transaction(telegram_id, category_name, amount, user_data["type"], user_data["reason"])
 
-    balance = fetch_current_balance(account_id, telegram_id)
+    balance = fetch_current_balance(telegram_id)
 
     await update.message.reply_text(
         f"✅ Transaction saved successfully! \n your balance is: {balance:.2f} birr",

@@ -9,7 +9,6 @@ from utils.category import get_category_from_reason
 from core.database import(
     insert_transaction,
     insert_user,
-    create_account,
     fetch_current_balance,
     fetch_monthly_spending_summary,
     fetch_latest_transaction,
@@ -32,16 +31,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 name = user.first_name
 
                 insert_user(telegram_id, name)
-                account_id = create_account(telegram_id, name)
 
                 validity_minutes = 10
                 url = os.environ["FRONTEND_URL"]
-                otp = generate_and_store_otp(telegram_id,account_id, validity_minutes)
+                otp = generate_and_store_otp(telegram_id, validity_minutes)
 
                 AppContext().first_name = name
                 AppContext().userName = user.username
                 AppContext().telegram_id = telegram_id
-                AppContext().account_id = account_id
 
 
                 url_escaped = escape_md_v2(url)
@@ -84,16 +81,15 @@ Show this help message
     )
 async def check_balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    account_id = AppContext().account_id
     telegram_id = AppContext().telegram_id
     if update.effective_chat is not None:
-        if account_id is None or telegram_id is None:
+        if telegram_id is None:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Please register first using /start command."
             )
             return
-        balance = fetch_current_balance(account_id, telegram_id)
+        balance = fetch_current_balance(telegram_id)
         print(f"check_balance command invoked, balance: {balance}")
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -116,8 +112,8 @@ async def transaction_command(
         await update.message.reply_text(f"Usage: /{typeOf} <amount> <description>")
         return
 
-    account_id = appContext.account_id
-    if account_id is None:
+    telegram_id = appContext.telegram_id
+    if telegram_id is None:
         await update.message.reply_text("Please register first using /start command.")
         return
 
@@ -134,13 +130,13 @@ async def transaction_command(
     print(f"Determined category: {category_name}")
 
     # Insert transaction
-    await insert_transaction(account_id, category_name, amount, typeOf, reason)
-    print(f"Transaction added: {typeOf} {amount} for account {account_id} ({reason})")
+    await insert_transaction(telegram_id, category_name, amount, typeOf, reason)
+    print(f"Transaction added: {typeOf} {amount} for {reason} this reason")
 
     # Send confirmation
     telegram_id = appContext.telegram_id
-    if update.effective_chat and account_id and telegram_id:
-        balance = fetch_current_balance(account_id, telegram_id)
+    if update.effective_chat and telegram_id:
+        balance = fetch_current_balance(telegram_id)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f"✅ Transaction {typeOf} successfully.\n💰 Current balance: {balance:.2f} birr"
@@ -260,12 +256,11 @@ async def transactions_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     appContext = AppContext()
-    account_id = appContext.account_id
     telegram_id = appContext.telegram_id
     if update.message is None:
         return
 
-    if account_id is None or telegram_id is None:
+    if  telegram_id is None:
         await update.message.reply_text("Please register first using /start command.")
         return
 
@@ -281,10 +276,10 @@ async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Insert a reversing transaction
     transaction = insert_transaction(
-        account_id=account_id,
+        telegram_id=telegram_id,
         category_name=latest_txn["category_name"],
         amount=latest_txn["amount"],
-        type=reverse_type,
+        tx_type=reverse_type,
         reason=f"Undo: {latest_txn['reason']}"
     )
     print(f"transaction ->{transaction}")
@@ -294,7 +289,7 @@ async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mark_transaction_undone(transaction["id"])
 
     # Send confirmation
-    balance = fetch_current_balance(account_id, telegram_id)
+    balance = fetch_current_balance(telegram_id)
     await update.message.reply_text(
         f"✅ Last transaction has been undone.\n💰 Current balance: {balance:.2f} birr"
     )

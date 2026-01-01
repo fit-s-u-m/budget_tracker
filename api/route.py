@@ -104,7 +104,7 @@ def create_app() -> FastAPI:
         """
         Add a new transaction for a user using JSON body:
         {
-            "account_id":20,
+            "telegram_id":238040,
             "amount":50.0,
             "category":"Food",
             "type_":"debit",
@@ -113,7 +113,7 @@ def create_app() -> FastAPI:
         }
         """
         transaction_id = await insert_transaction(
-            telegram_id=txn.account_id,
+            telegram_id=txn.telegram_id,
             amount=txn.amount,
             reason=txn.reason or "",
             category_name=txn.category,

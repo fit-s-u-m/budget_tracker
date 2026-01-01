@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from enum import Enum, auto
 
 class TransactionRequest(BaseModel):
-    account_id: int
+    telegram_id: int
     amount: int
     category: str
     reason: Optional[str] = None
