@@ -201,7 +201,8 @@ def fetch_monthly_spending_summary(telegram_id: int) -> List[Dict]:
         rows = cursor.fetchall()
     return [{"month": r[0], "total_spent": r[1], "total_earned": r[2]} for r in rows]
 
-def mark_transaction_undone(txn_id: int):
+def mark_transaction_undone(txn_id: Optional[int]):
+    if txn_id is None: return
     with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -296,5 +297,31 @@ def count_total_transactions():
     with get_conn() as conn, conn.cursor() as cursor:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) as total FROM transactions")
-        total = cursor.fetchone()["total"]
+        count = cursor.fetchone()
+        total = count[0] if count else 0
         return total
+
+def undo_transaction(
+    transaction_id: int,
+):
+    with get_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            update_query.undo_transaction_query,
+            (transaction_id,)
+        )
+        new_tx = cursor.fetchone()
+        new_tx_id = new_tx[0] if new_tx else None
+        mark_transaction_undone(transaction_id)
+        mark_transaction_undone(new_tx_id)
+        conn.commit()
+        return new_tx_id
+def update_transaction(tx_id: int, amount: int,category_id: int, tx_type: str, reason: str):
+    with get_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            update_query.update_transaction_query,
+            (tx_id, amount, tx_type, category_id, reason, tx_id)
+        )
+        conn.commit()
+        return cursor.rowcount

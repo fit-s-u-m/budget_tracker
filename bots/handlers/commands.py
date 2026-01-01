@@ -1,6 +1,8 @@
+from psycopg import transaction
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 import re
+from datetime import datetime
 
 import os
 from utils.category import get_category_from_reason 
@@ -132,7 +134,7 @@ async def transaction_command(
     print(f"Determined category: {category_name}")
 
     # Insert transaction
-    insert_transaction(account_id, category_name, amount, typeOf, reason)
+    await insert_transaction(account_id, category_name, amount, typeOf, reason)
     print(f"Transaction added: {typeOf} {amount} for account {account_id} ({reason})")
 
     # Send confirmation
@@ -278,18 +280,18 @@ async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(latest_txn)
 
     # Insert a reversing transaction
-    transaction_id = insert_transaction(
+    transaction = insert_transaction(
         account_id=account_id,
         category_name=latest_txn["category_name"],
         amount=latest_txn["amount"],
         type=reverse_type,
         reason=f"Undo: {latest_txn['reason']}"
     )
-    print(f"transaction ->{transaction_id}")
+    print(f"transaction ->{transaction}")
 
     # Mark original transaction as undone (optional)
     mark_transaction_undone(latest_txn["id"])
-    mark_transaction_undone(transaction_id)
+    mark_transaction_undone(transaction["id"])
 
     # Send confirmation
     balance = fetch_current_balance(account_id, telegram_id)

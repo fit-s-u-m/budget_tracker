@@ -1,5 +1,15 @@
 from custom_types import TransactionRequest
-from core.database import fetch_current_balance,fetch_monthly_spending_summary,fetch_transactions_for_user,insert_transaction, verify_otp,search_transactions,count_total_transactions
+from core.database import(
+    fetch_current_balance,
+    fetch_monthly_spending_summary,
+    fetch_transactions_for_user,
+    insert_transaction,
+    verify_otp,
+    search_transactions,
+    count_total_transactions,
+    undo_transaction,
+    update_transaction,
+)
 
 import os
 from bots.bot import init_bot
@@ -167,5 +177,16 @@ def create_app() -> FastAPI:
     def count_transactions():
         count_total = count_total_transactions()
         return {"total": count_total}
+
+    @app.post("/transaction/undo")
+    def undo_transaction(transaction_id: int):
+        undo = undo_transaction(transaction_id)
+        print("Undo transaction result: - ",undo)
+        return {"transaction_id": transaction_id, "status": "undone" if undo else "failed"}
+
+    @app.post("/transaction/update")
+    def update_transaction(transaction_id:int, type:str, amount:float, category_id:int, reason:Optional[str]=None):
+        update = update_transaction(transaction_id, type, amount, category_id, reason)
+        return {"transaction_id": transaction_id, "status": "updated" if update else "failed"}
 
     return app
