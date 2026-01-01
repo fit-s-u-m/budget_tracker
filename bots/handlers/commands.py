@@ -44,10 +44,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 url_escaped = escape_md_v2(url)
                 await update.message.reply_text(
-                    f"Successfully registered Welcome to the Budget Bot.\n\n"
-                    f"Your OTP:\n"
+                    f"Successfully registered \! Welcome to the Budget Bot\.\n\n"
+                    f"Your OTP\:\n"
                     f"`{otp}`\n\n"
-                    f"It will expire in {validity_minutes} minutes.\n"
+                    f"It will expire in {validity_minutes} minutes\.\n"
                     f"It is used to login to our website at [{url_escaped}]({url_escaped})",
                     parse_mode="MarkdownV2"
                 )
