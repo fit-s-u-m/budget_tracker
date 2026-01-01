@@ -1,5 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
+import re
+
 import os
 from utils.category import get_category_from_reason 
 from core.database import(
@@ -16,6 +18,8 @@ from core.database import(
 )
 from bots.context import AppContext
 
+def escape_md_v2(text: str) -> str:
+    return re.sub(r'([_\*\[\]\(\)~`>#\+\-=|{}.!])', r'\\\1', text)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("start command invoked")
     if update.effective_chat is not None:
@@ -38,12 +42,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 AppContext().account_id = account_id
 
 
+                url_escaped = escape_md_v2(url)
                 await update.message.reply_text(
                     f"Successfully registered! Welcome to the Budget Bot.\n\n"
                     f"Your OTP:\n"
                     f"`{otp}`\n\n"
                     f"It will expire in {validity_minutes} minutes.\n"
-                    f"It is used to login to our website at [{url}]({url})",
+                    f"It is used to login to our website at [{url_escaped}]({url_escaped})",
                     parse_mode="MarkdownV2"
                 )
             except Exception as e:
