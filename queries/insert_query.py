@@ -1,22 +1,19 @@
 from psycopg import sql
+import uuid
 
+# ----------------------------
 # Insert a user, ignore conflict on telegram_id
+# ----------------------------
 insert_user_query = sql.SQL('''
     INSERT INTO users (telegram_id, name)
     VALUES (%s, %s)
     ON CONFLICT (telegram_id) DO NOTHING
-    RETURNING id, telegram_id, name;
+    RETURNING id, telegram_id, name, balance;
 ''')
 
-# Insert an account, ignore conflict on telegram_id
-insert_account_query = sql.SQL('''
-    INSERT INTO accounts (telegram_id, name)
-    VALUES (%s, %s)
-    ON CONFLICT (telegram_id) DO NOTHING
-    RETURNING id, telegram_id, name;
-''')
-
-# Insert category, ignore conflict on name (or name+type depending on your schema)
+# ----------------------------
+# Insert category, ignore conflict on name
+# ----------------------------
 insert_category_query = sql.SQL('''
     INSERT INTO categories (name, type)
     VALUES (%s, %s)
@@ -24,9 +21,19 @@ insert_category_query = sql.SQL('''
     RETURNING id, name, type;
 ''')
 
+# ----------------------------
 # Insert transaction
+# ----------------------------
 insert_transaction_query = sql.SQL('''
-    INSERT INTO transactions (account_id, category_id, amount, type, reason)
-    VALUES (%s, %s, %s, %s, %s)
-    RETURNING id, account_id, category_id, amount, type, reason, created_at;
+    INSERT INTO transactions (
+        id,
+        telegram_id,
+        category,
+        amount,
+        type,
+        reason,
+        status
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    RETURNING id, telegram_id, category, amount, type, reason, status, created_at, updated_at;
 ''')

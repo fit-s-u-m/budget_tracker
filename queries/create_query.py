@@ -5,18 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
     name TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-''')
-
-create_account_table = sql.SQL('''
-CREATE TABLE IF NOT EXISTS accounts (
-    id SERIAL PRIMARY KEY,
-    telegram_id BIGINT UNIQUE NOT NULL,
-    name TEXT NOT NULL,
-    balance INTEGER NOT NULL CHECK (amount >= 0) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
+    balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0)
 );
 ''')
 
@@ -30,43 +20,63 @@ CREATE TABLE IF NOT EXISTS categories (
 
 create_transaction_table = sql.SQL('''
 CREATE TABLE IF NOT EXISTS transactions (
-    id SERIAL PRIMARY KEY,
-    account_id INTEGER NOT NULL,
-    category_id INTEGER,
+    id UUID PRIMARY KEY,
+    telegram_id BIGINT NOT NULL,
+    category TEXT,
     amount INTEGER NOT NULL CHECK (amount >= 0),
-    type TEXT CHECK(type IN ('debit', 'credit')) NOT NULL,
+    type TEXT CHECK (type IN ('debit', 'credit')) NOT NULL,
     status TEXT DEFAULT 'active',
     reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (account_id) REFERENCES accounts(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (telegram_id) REFERENCES users(telegram_id) ON DELETE CASCADE,
+    FOREIGN KEY (category) REFERENCES categories(name)
 );
 ''')
 
-create_index = sql.SQL('''
-    CREATE INDEX IF NOT EXISTS idx_accounts_telegram_id
-    ON accounts(telegram_id);
 
-    CREATE INDEX IF NOT EXISTS idx_transactions_account_id
-    ON transactions (account_id);
+create_index = sql.SQL('''
+
+    CREATE INDEX IF NOT EXISTS idx_users_telegram_id
+    ON users (telegram_id);
+
+    CREATE INDEX IF NOT EXISTS idx_transactions_telegram_id
+    ON transactions (telegram_id);
 
     CREATE INDEX IF NOT EXISTS idx_transactions_created_at
-    ON transactions (created_at DESC);
+    ON transactions (created_at DESC NULLS LAST);
 
     CREATE INDEX IF NOT EXISTS idx_transactions_type
     ON transactions (type);
 
-    CREATE INDEX IF NOT EXISTS idx_transactions_category_id
-    ON transactions (category_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_category
+    ON transactions (category);
+
+    CREATE INDEX IF NOT EXISTS idx_transactions_updated_at
+    ON transactions (updated_at);
 ''')
 
 
 create_otp_codes = sql.SQL('''
 CREATE TABLE IF NOT EXISTS otp_codes (
     telegram_id BIGINT NOT NULL,
-    account_id  INTEGER NOT NULL,
     otp INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL
 );
+''')
+create_auto_update = sql.Sql('''
+    CREATE OR REPLACE FUNCTION set_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    CREATE TRIGGER trg_transactions_updated_at
+    BEFORE UPDATE ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
 ''')

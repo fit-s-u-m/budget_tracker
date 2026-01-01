@@ -72,13 +72,13 @@ def create_app() -> FastAPI:
     def read_root():
         return {"message": "Budget Tracker API is running."}
     @app.get("/balance")
-    def get_balance(account_id: int,telegram_id: int):
+    def get_balance(telegram_id: int):
         """
         Get current balance for an account
-        Example: GET /balance?account_id=20&telegram_id=123456
+        Example: GET /balance?telegram_id=123456
         """
-        balance = fetch_current_balance(account_id,telegram_id)
-        return {"account_id": account_id, "telegram_id": telegram_id, "balance": balance}
+        balance = fetch_current_balance(telegram_id)
+        return {"telegram_id": telegram_id, "balance": balance}
 
     @app.get("/trasactions")
     def get_transactions(limit: int,telegram_id: int):
@@ -113,11 +113,11 @@ def create_app() -> FastAPI:
         }
         """
         transaction_id = await insert_transaction(
-            account_id=txn.account_id,
+            telegram_id=txn.account_id,
             amount=txn.amount,
-            reason=txn.reason,
+            reason=txn.reason or "",
             category_name=txn.category,
-            type=txn.type_,
+            tx_type=txn.type_,
         )
         return {"transaction_id": transaction_id, "status": "success"}
     @app.get("/verify_otp")
@@ -130,9 +130,9 @@ def create_app() -> FastAPI:
         logger.info(f"Verifying OTP: {entered_otp}")
         resp = verify_otp(entered_otp)
         if resp is not None:
-            telgram_id, account_id = resp
+            telgram_id = resp
             print(resp)
-            return {"telegram_id": telgram_id, "account_id": account_id, "status": "verified"}
+            return {"telegram_id": telgram_id, "status": "verified"}
         return {"status": "invalid OTP"}
 
     @app.get("/transactions/search")
@@ -179,14 +179,14 @@ def create_app() -> FastAPI:
         return {"total": count_total}
 
     @app.post("/transaction/undo")
-    def undo_transaction(transaction_id: int):
+    def undo_transaction(transaction_id: str):
         undo = undo_transaction_db(transaction_id)
         print("Undo transaction result: - ",undo)
         return {"transaction_id": transaction_id, "status": "undone" if undo else "failed"}
 
     @app.post("/transaction/update")
-    def update_transaction(transaction_id:int, tx_type: str, amount: int, category_id:int, reason:Optional[str]=None):
-        update = update_transaction_db(transaction_id, amount , category_id ,tx_type , reason)
+    def update_transaction(transaction_id: str, tx_type: str, amount: int, category_name: str, reason:Optional[str]=None):
+        update = update_transaction_db(transaction_id, amount , category_name ,tx_type , reason)
         return {"transaction_id": transaction_id, "status": "updated" if update else "failed"}
 
     return app

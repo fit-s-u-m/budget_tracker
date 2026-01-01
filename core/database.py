@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 from api.websocket import manager
+import uuid
 
 load_dotenv()
 
@@ -28,11 +29,11 @@ def initalize_tables():
         cursor = connection.cursor()
 
         cursor.execute(create_query.create_user_table)
-        cursor.execute(create_query.create_account_table)
         cursor.execute(create_query.create_category_table)
         cursor.execute(create_query.create_index)
         cursor.execute(create_query.create_transaction_table)
         cursor.execute(create_query.create_otp_codes)
+        cursor.execute(create_query.create_auto_update)
 
         connection.commit()
         print("Tables created successfully.")
@@ -54,50 +55,45 @@ def insert_user(telegram_id, name):
         print(f"User inserted successfully.info: {user_info}")
         return user_info
 
-async def insert_transaction(account_id: int, category_name: str, amount:int, type:str, reason:str):
-    # print("")
+async def insert_transaction(telegram_id: int, category_name: str, amount: int, tx_type: str, reason: str):
+    if amount <= 0:
+        raise ValueError("Amount must be a positive integer.")
+
     with get_conn() as connection:
         with connection.cursor() as cursor:
-            if amount <= 0:
-                raise ValueError("Amount must be a positive integer.")
-            # Insert category
-            cursor.execute(insert_query.insert_category_query, (category_name, type))
+            # Insert category if not exists
+            cursor.execute(insert_query.insert_category_query, (category_name, tx_type))
             category = cursor.fetchone()
             if category is None:
-                # Category already exists, fetch it
-                cursor.execute("SELECT id, name, type FROM categories WHERE name = %s", (category_name,))
+                cursor.execute("SELECT name, type FROM categories WHERE name = %s", (category_name,))
                 category = cursor.fetchone()
-            print(category,category_name)
-            category_id = category[0] if category else None
+            category_name_db = category[0] if category else category_name
 
             # Insert transaction
+            transaction_id = str(uuid.uuid4())
             cursor.execute(
                 insert_query.insert_transaction_query,
-                (account_id, category_id, amount, type, reason)
+                (transaction_id, telegram_id, category_name_db, amount, tx_type, reason, "active")
             )
-            transaction = cursor.fetchone()
-            transaction_id = transaction[0] if transaction else None
 
-            print(f"Transaction inserted successfully.id: {transaction_id}")
-
-            # Update balance
-            if type == "debit":
-                cursor.execute(update_query.subtract_balance_query, (amount, account_id))
-            elif type == "credit":
-                cursor.execute(update_query.add_balance_query, (amount, account_id))
+            # Update user's balance
+            if tx_type == "debit":
+                cursor.execute(update_query.subtract_balance_query, (amount, telegram_id))
+            elif tx_type == "credit":
+                cursor.execute(update_query.add_balance_query, (amount, telegram_id))
 
             asyncio.create_task(manager.broadcast({
                 "action": "new_transaction",
                 "transaction_id": transaction_id,
-                "account_id": account_id,
-                "category": category_name,
+                "category": category_name_db,
                 "amount": amount,
-                "type": type,
+                "type": tx_type,
                 "reason": reason,
             }))
 
             connection.commit()
             return transaction_id
+
 
 # Create a new category in the categories table
 def create_category(name, type):
@@ -112,53 +108,21 @@ def create_category(name, type):
         print(f"Category inserted successfully.{category_id}")
         return category_id
 
-# Create a new account in the accounts table
-def create_account(telegram_id, name):
-    with get_conn() as connection:
-        cursor = connection.cursor()
-
-        cursor.execute(insert_query.insert_account_query, (telegram_id, name))
-        cursor.execute(
-            "SELECT id FROM accounts WHERE telegram_id = %s",
-            (telegram_id,)
-        )
-        account = cursor.fetchone()
-        account_id = account[0]
-
-
-        connection.commit()
-        print("Account inserted successfully.", account_id)
-        return account_id
-def fetch_accounts_by_telegram_id(telegram_id: int) -> List[Dict]:
+def fetch_current_balance(telegram_id: int) -> int:
     with get_conn() as conn:
         cursor = conn.cursor()
-        cursor.execute(get_query.get_accounts_by_telegram_id_query, (telegram_id,))
-        rows = cursor.fetchall()
-    return [{"id": r[0], "name": r[1], "balance": r[2], "created_at": r[3]} for r in rows]
-
-def fetch_all_accounts_with_balance(telegram_id: int) -> List[Dict]:
-    with get_conn() as conn:
-        cursor = conn.cursor()
-        cursor.execute(get_query.get_all_accounts_with_balance_query, (telegram_id,))
-        rows = cursor.fetchall()
-    return [{"id": r[0], "name": r[1], "balance": r[2]} for r in rows]
-
-def fetch_current_balance(account_id: int, telegram_id: int) -> int:
-    with get_conn() as conn:
-        cursor = conn.cursor()
-        cursor.execute(get_query.get_current_balance_query, (account_id, telegram_id))
+        cursor.execute("SELECT balance FROM users WHERE telegram_id = %s", ( telegram_id))
         row = cursor.fetchone()
     return row[0] if row else 0
 
 # ---------------- TRANSACTIONS ----------------
-def fetch_transactions_for_user(telegram_id: int,limit: Optional[int] = None) -> List[Dict]:
+
+def fetch_transactions_for_user(telegram_id: int, limit: Optional[int] = None):
     with get_conn() as conn:
         cursor = conn.cursor()
-        cursor.execute(get_query.get_account_transactions_query, (telegram_id,))
-        if limit is not None:
-            rows = cursor.fetchmany(limit)
-        else:
-            rows = cursor.fetchall()
+        cursor.execute(get_query.get_user_transactions_query, (telegram_id,))
+        rows = cursor.fetchmany(limit) if limit else cursor.fetchall()
+
     return [
         {
             "id": r[0],
@@ -166,7 +130,7 @@ def fetch_transactions_for_user(telegram_id: int,limit: Optional[int] = None) ->
             "type": r[2],
             "reason": r[3],
             "created_at": r[4],
-            "account_name": r[5],
+            "user_name": r[5],
             "category_name": r[6],
             "category_type": r[7],
         }
@@ -201,7 +165,7 @@ def fetch_monthly_spending_summary(telegram_id: int) -> List[Dict]:
         rows = cursor.fetchall()
     return [{"month": r[0], "total_spent": r[1], "total_earned": r[2]} for r in rows]
 
-def mark_transaction_undone(txn_id: Optional[int]):
+def mark_transaction_undone(txn_id: Optional[str]):
     if txn_id is None: return
     with get_conn() as conn:
         cursor = conn.cursor()
@@ -210,15 +174,15 @@ def mark_transaction_undone(txn_id: Optional[int]):
         )
         conn.commit()
 
-def generate_and_store_otp(telegram_id, account_id, validity_minutes=5):
+def generate_and_store_otp(telegram_id, validity_minutes=5):
     otp = random.randint(100000, 999999)  # 6-digit OTP
     expires_at = datetime.now() + timedelta(minutes=validity_minutes)
     
     with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO otp_codes (telegram_id, account_id, otp, expires_at) VALUES (%s,%s, %s, %s)",
-            (telegram_id,account_id, otp, expires_at)
+            "INSERT INTO otp_codes (telegram_id, otp, expires_at) VALUES (%s, %s, %s)",
+            (telegram_id, otp, expires_at)
         )
         conn.commit()
     return otp
@@ -228,13 +192,13 @@ def verify_otp(entered_otp):
     with get_conn() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT telegram_id,account_id, expires_at FROM otp_codes WHERE otp = %s",
+            "SELECT telegram_id, expires_at FROM otp_codes WHERE otp = %s",
             (entered_otp,)
         )
         row = cursor.fetchone()
         print(f"OTP verification row: {row}")
         if row:
-            telegram_id, account_id, expires_at= row
+            telegram_id, expires_at= row
             if datetime.now() > expires_at:
                 # OTP expired
                 print("OTP has expired.")
@@ -245,8 +209,8 @@ def verify_otp(entered_otp):
             # OTP is valid; remove it after use
             cursor.execute("DELETE FROM otp_codes WHERE otp = %s", (entered_otp,))
             conn.commit()
-            print(telegram_id,account_id)
-            return (telegram_id,account_id)
+            print(telegram_id)
+            return telegram_id
     return None
 
 def search_transactions(
@@ -261,10 +225,8 @@ def search_transactions(
     base_query = """
     SELECT
         t.id, t.amount, t.type, t.reason, t.created_at,
-        a.name AS account_name,
         c.name AS category_name
     FROM transactions t
-    JOIN accounts a ON t.account_id = a.id
     LEFT JOIN categories c ON t.category_id = c.id
     WHERE a.telegram_id = %s
     """
@@ -293,6 +255,7 @@ def search_transactions(
     with get_conn() as conn, conn.cursor() as cursor:
         cursor.execute(base_query, params)
         return cursor.fetchall()
+
 def count_total_transactions():
     with get_conn() as conn, conn.cursor() as cursor:
         cursor = conn.cursor()
@@ -301,31 +264,28 @@ def count_total_transactions():
         total = count[0] if count else 0
         return total
 
-def undo_transaction_db(
-    transaction_id: int,
-):
+
+def undo_transaction_db(transaction_id: str):
     with get_conn() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            update_query.undo_transaction_query,
-            (transaction_id,)
-        )
+        # undo transaction using new schema
+        cursor.execute(update_query.undo_transaction_query, (transaction_id,))
         new_tx = cursor.fetchone()
         new_tx_id = new_tx[0] if new_tx else None
+        # mark both original and undo as undone
         mark_transaction_undone(transaction_id)
         mark_transaction_undone(new_tx_id)
         conn.commit()
         return new_tx_id
-def update_transaction_db(tx_id: int, amount: int,category_id: int, tx_type: str, reason: Optional[str]=None):
+
+def update_transaction_db(tx_id: str, amount: int, category_name: str, tx_type: str, reason: Optional[str] = ""):
+    if amount <= 0:
+        raise ValueError("Amount must be a positive integer.")
+
     with get_conn() as conn:
         cursor = conn.cursor()
-        if reason is None:
-            reason = ""
-        if amount <= 0:
-            raise ValueError("Amount must be a positive integer.")
-        cursor.execute(
-            update_query.update_transaction_query,
-            (tx_id, amount, tx_type, category_id, reason, tx_id)
-        )
+        # ensure category exists
+        cursor.execute(insert_query.insert_category_query, (category_name, tx_type))
+        cursor.execute(update_query.update_transaction_query, (tx_id, amount, tx_type, category_name, reason, tx_id))
         conn.commit()
         return cursor.rowcount

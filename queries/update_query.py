@@ -1,33 +1,46 @@
 from psycopg import sql
+
+# ----------------------------
+# Add balance to a user
+# ----------------------------
 add_balance_query = sql.SQL('''
-   UPDATE accounts
-        SET balance = balance + %s
-        WHERE id = %s
-''')
-subtract_balance_query = sql.SQL('''
-    UPDATE accounts
-        SET balance = balance - %s
-        WHERE id = %s
+   UPDATE users
+   SET balance = balance + %s
+   WHERE telegram_id = %s
 ''')
 
+# ----------------------------
+# Subtract balance from a user
+# ----------------------------
+subtract_balance_query = sql.SQL('''
+    UPDATE users
+    SET balance = balance - %s
+    WHERE telegram_id = %s
+''')
+
+# ----------------------------
+# Undo a transaction
+# ----------------------------
 undo_transaction_query = sql.SQL("""
     WITH original AS (
-        SELECT id, account_id, category_id, amount, type
+        SELECT id, telgram_id, category, amount, type
         FROM transactions
         WHERE id = %s AND status = 'active'
     ),
     counter AS (
         INSERT INTO transactions (
-            account_id,
-            category_id,
+            id,
+            telegram_id,
+            category,
             amount,
             type,
             status,
             reason
         )
         SELECT
-            account_id,
-            category_id,
+            gen_random_uuid(),
+            telegram_id,
+            category,
             amount,
             CASE
                 WHEN type = 'debit'  THEN 'credit'
@@ -36,54 +49,57 @@ undo_transaction_query = sql.SQL("""
             'undo',
             %s
         FROM original
-        RETURNING id, account_id, amount, type
+        RETURNING id, telegram_id, amount, type
     ),
     updated AS (
-        UPDATE accounts
+        UPDATE users
            SET balance = balance +
                CASE
                    WHEN counter.type = 'credit' THEN counter.amount
                    ELSE -counter.amount
                END
           FROM counter
-         WHERE accounts.id = counter.account_id
+         WHERE users.telegram_id = counter.telegram_id
          RETURNING counter.id
     )
     SELECT id FROM updated;
 """)
 
+# ----------------------------
+# Update a transaction (adjust user balance)
+# ----------------------------
 update_transaction_query = sql.SQL("""
     WITH old AS (
-        SELECT account_id, amount, type
+        SELECT telegram_id, amount, type
         FROM transactions
         WHERE id = %s AND status = 'active'
     ),
     reversed AS (
-        UPDATE accounts
+        UPDATE users
            SET balance = balance +
                CASE
                    WHEN old.type = 'debit'  THEN old.amount
                    ELSE -old.amount
                END
           FROM old
-         WHERE accounts.id = old.account_id
-         RETURNING accounts.id
+         WHERE users.telegram_id = old.telegram_id
+         RETURNING users.id
     ),
     updated AS (
         UPDATE transactions
            SET amount = %s,
                type = %s,
-               category_id = %s,
+               category = %s,
                reason = %s
          WHERE id = %s
-         RETURNING account_id, amount, type
+         RETURNING telegram_id, amount, type
     )
-    UPDATE accounts
+    UPDATE users
        SET balance = balance +
            CASE
                WHEN updated.type = 'credit' THEN updated.amount
                ELSE -updated.amount
            END
       FROM updated
-     WHERE accounts.id = updated.account_id;
+     WHERE users.telegram_id = updated.telegram_id;
 """)
