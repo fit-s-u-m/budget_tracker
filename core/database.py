@@ -137,9 +137,7 @@ def fetch_transactions_for_user(telegram_id: int, limit: Optional[int] = None):
             "type": r[2],
             "reason": r[3],
             "created_at": r[4],
-            "user_name": r[5],
-            "category_name": r[6],
-            "category_type": r[7],
+            "category_name": r[5],
         }
         for r in rows
     ]

@@ -23,7 +23,6 @@ get_user_transactions_query = sql.SQL('''
         t.reason,
         t.created_at,
         t.category AS category_name,
-        c.type AS category_type
     FROM transactions t
     LEFT JOIN categories c ON t.category = c.name
     WHERE t.telegram_id = %s
