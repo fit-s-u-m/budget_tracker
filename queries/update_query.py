@@ -23,7 +23,7 @@ subtract_balance_query = sql.SQL('''
 # ----------------------------
 undo_transaction_query = sql.SQL("""
     WITH original AS (
-        SELECT id, telgram_id, category, amount, type
+        SELECT id, telegram_id, category, amount, type
         FROM transactions
         WHERE id = %s AND status = 'active'
     ),
