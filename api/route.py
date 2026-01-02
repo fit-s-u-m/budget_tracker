@@ -21,6 +21,7 @@ from typing import Optional
 
 from fastapi import FastAPI,Request,Query,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 import logging
 
@@ -36,6 +37,13 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+
+class UpdateTransactionRequest(BaseModel):
+    transaction_id: str
+    tx_type: str
+    amount: int
+    category_name: str
+    reason: Optional[str] = None
 
 # Create a logger instance
 logger = logging.getLogger(__name__)
@@ -185,8 +193,14 @@ def create_app() -> FastAPI:
         return {"transaction_id": transaction_id, "status": "undone" if undo else "failed"}
 
     @app.post("/transaction/update")
-    def update_transaction(transaction_id: str, tx_type: str, amount: int, category_name: str, reason:Optional[str]=None):
-        update = update_transaction_db(transaction_id, amount , category_name ,tx_type , reason)
-        return {"transaction_id": transaction_id, "status": "updated" if update else "failed"}
+    def update_transaction(request: UpdateTransactionRequest):
+        update = update_transaction_db(
+            request.transaction_id,
+            request.amount,
+            request.category_name,
+            request.tx_type,
+            request.reason
+        )
+        return {"transaction_id": request.transaction_id, "status": "updated" if update else "failed"}
 
     return app
