@@ -232,7 +232,7 @@ def search_transactions(
     SELECT
         t.id, t.amount, t.type, t.reason, t.created_at, t.category, t.status
     FROM transactions t
-    WHERE a.telegram_id = %s
+    WHERE t.telegram_id = %s
     """
     
     params = [telegram_id]
