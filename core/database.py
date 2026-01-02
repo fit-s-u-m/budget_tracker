@@ -62,12 +62,19 @@ async def insert_transaction(telegram_id: int, category_name: str, amount: int, 
     with get_conn() as connection:
         with connection.cursor() as cursor:
             # Insert category if not exists
-            cursor.execute(insert_query.insert_category_query, (category_name, tx_type))
-            category = cursor.fetchone()
-            if category is None:
-                cursor.execute("SELECT name, type FROM categories WHERE name = %s", (category_name,))
-                category = cursor.fetchone()
-            category_name_db = category[0] if category else category_name
+            cursor.execute(
+                "INSERT INTO categories (name, type) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING RETURNING name",
+                (category_name, tx_type)
+            )
+            category_row = cursor.fetchone()
+
+            if category_row:
+                category_name_db = category_row[0]
+            else:
+                # Category already exists, fetch its ID
+                cursor.execute("SELECT name FROM categories WHERE name = %s", (category_name,))
+                category_name_db = cursor.fetchone()[0]
+
 
             # Insert transaction
             transaction_id = str(uuid.uuid4())
