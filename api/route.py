@@ -174,8 +174,8 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/transactions/count")
-    def count_transactions():
-        count_total = count_total_transactions()
+    def count_transactions(telegram_id: int = Query(..., description="Telegram user id")):
+        count_total = count_total_transactions(telegram_id)
         return {"total": count_total}
 
     @app.post("/transaction/undo")

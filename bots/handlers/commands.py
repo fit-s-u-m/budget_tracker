@@ -8,7 +8,7 @@ import os
 from utils.category import get_category_from_reason 
 from core.database import(
     insert_transaction,
-    insert_user,
+    insert_user_db,
     fetch_current_balance,
     fetch_monthly_spending_summary,
     fetch_latest_transaction,
@@ -30,7 +30,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 telegram_id = user.id
                 name = user.first_name
 
-                insert_user(telegram_id, name)
+                insert_user_db(telegram_id, name)
 
                 validity_minutes = 10
                 url = os.environ["FRONTEND_URL"]

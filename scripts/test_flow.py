@@ -5,8 +5,8 @@ import websockets
 import time
 from datetime import datetime
 
-BASE_URL = "http://127.0.0.1:8000"
-WS_URL = "ws://127.0.0.1:8000/ws/transactions"
+BASE_URL = "http://localhost:8000"
+WS_URL = "ws://localhost:8000/ws/transactions"
 
 # Use a consistent telegram_id for testing
 TEST_TELEGRAM_ID = 123456789

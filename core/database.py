@@ -30,8 +30,8 @@ def initalize_tables():
 
         cursor.execute(create_query.create_user_table)
         cursor.execute(create_query.create_category_table)
-        cursor.execute(create_query.create_index)
         cursor.execute(create_query.create_transaction_table)
+        cursor.execute(create_query.create_index)
         cursor.execute(create_query.create_otp_codes)
         cursor.execute(create_query.create_auto_update)
 
@@ -39,7 +39,7 @@ def initalize_tables():
         print("Tables created successfully.")
 
 # Insert a new user into the users table
-def insert_user(telegram_id, name):
+def insert_user_db(telegram_id, name):
     with get_conn() as connection:
         cursor = connection.cursor()
 
@@ -111,7 +111,7 @@ def create_category(name, type):
 def fetch_current_balance(telegram_id: int) -> int:
     with get_conn() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT balance FROM users WHERE telegram_id = %s", ( telegram_id))
+        cursor.execute("SELECT balance FROM users WHERE telegram_id = %s", ( telegram_id,))
         row = cursor.fetchone()
     return row[0] if row else 0
 
@@ -256,10 +256,10 @@ def search_transactions(
         cursor.execute(base_query, params)
         return cursor.fetchall()
 
-def count_total_transactions():
+def count_total_transactions(telegram_id: int) -> int:
     with get_conn() as conn, conn.cursor() as cursor:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) as total FROM transactions")
+        cursor.execute("SELECT COUNT(*) as total FROM transactions WHERE telegram_id = %s ",(telegram_id,))
         count = cursor.fetchone()
         total = count[0] if count else 0
         return total

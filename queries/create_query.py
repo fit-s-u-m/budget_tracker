@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS otp_codes (
 );
 ''')
 create_auto_update = sql.SQL('''
+    DROP TRIGGER IF EXISTS trg_transactions_updated_at ON transactions;
     CREATE OR REPLACE FUNCTION set_updated_at()
     RETURNS TRIGGER AS $$
     BEGIN
