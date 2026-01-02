@@ -89,12 +89,12 @@ def create_app() -> FastAPI:
         return {"telegram_id": telegram_id, "balance": balance}
 
     @app.get("/trasactions")
-    def get_transactions(limit: int,telegram_id: int):
+    def get_transactions(limit: int,offset: int,telegram_id: int):
         """
         Get recent transactions for a user
         Example: GET /transactions?limit=10&telegram_id=123456
         """
-        transactions = fetch_transactions_for_user(telegram_id = telegram_id, limit = limit)
+        transactions = fetch_transactions_for_user(telegram_id = telegram_id, limit = limit,offset=offset)
         print(transactions)
         return transactions
 

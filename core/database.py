@@ -124,11 +124,11 @@ def fetch_current_balance(telegram_id: int) -> int:
 
 # ---------------- TRANSACTIONS ----------------
 
-def fetch_transactions_for_user(telegram_id: int, limit: Optional[int] = None):
+def fetch_transactions_for_user(telegram_id: int, limit: Optional[int] = None,offset: int = 0) -> List[Dict]:
     with get_conn() as conn:
         cursor = conn.cursor()
-        cursor.execute(get_query.get_user_transactions_query, (telegram_id,))
-        rows = cursor.fetchmany(limit) if limit else cursor.fetchall()
+        cursor.execute(get_query.get_user_transactions_query, (telegram_id,limit,offset,))
+        rows = cursor.fetchall()
 
     return [
         {

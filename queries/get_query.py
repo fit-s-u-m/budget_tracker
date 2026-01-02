@@ -28,6 +28,7 @@ get_user_transactions_query = sql.SQL('''
     LEFT JOIN categories c ON t.category = c.name
     WHERE t.telegram_id = %s
     ORDER BY t.created_at DESC NULLS LAST
+    LIMIT %s OFFSET %s;
 ''')
 
 # Get current balance for a user
