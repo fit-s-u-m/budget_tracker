@@ -147,7 +147,7 @@ def create_app() -> FastAPI:
     def search_transactions_route(
         telegram_id: str = Query(..., description="Telegram user id"),
         text: Optional[str] = Query(None, description="Search in reason"),
-        category_id: Optional[int] = Query(None),
+        category: Optional[str] = Query(None, description="Category name"),
         created_at:Optional[str]=Query(None,description="Date in YYYY-MM-DD format"),
         tx_type: Optional[str] = Query(None, regex="^(income|expense)$"),
         limit: int = Query(50, ge=1, le=100),
@@ -157,7 +157,7 @@ def create_app() -> FastAPI:
             results = search_transactions(
                 telegram_id=telegram_id,
                 text=text,
-                category_id=category_id,
+                category=category,
                 created_at=created_at,
                 tx_type=tx_type,
                 limit=limit,
@@ -172,9 +172,8 @@ def create_app() -> FastAPI:
                     "type": x[2],
                     "description": x[3],
                     "date": x[4],
-                    "account_name": x[5],
-                    "category": x[6],
-                    "status": x[7],
+                    "category": x[5],
+                    "status": x[6],
                 }
                 for x in results
             ]

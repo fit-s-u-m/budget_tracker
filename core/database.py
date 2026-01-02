@@ -222,7 +222,7 @@ def verify_otp(entered_otp):
 def search_transactions(
     telegram_id: str,
     text: str | None = None,
-    category_id: int | None = None,
+    category: str | None = None,
     created_at: str | None = None,
     tx_type: str | None = None,
     limit: int = 50,
@@ -230,10 +230,8 @@ def search_transactions(
 ):
     base_query = """
     SELECT
-        t.id, t.amount, t.type, t.reason, t.created_at,
-        c.name AS category_name
+        t.id, t.amount, t.type, t.reason, t.created_at, t.category, t.status,
     FROM transactions t
-    LEFT JOIN categories c ON t.category_id = c.id
     WHERE a.telegram_id = %s
     """
     
@@ -243,9 +241,9 @@ def search_transactions(
         base_query += " AND t.type = %s"
         params.append(tx_type)
 
-    if category_id:
-        base_query += " AND t.category_id = %s"
-        params.append(str(category_id))
+    if category:
+        base_query += " AND t.category = %s"
+        params.append(category)
 
     if created_at:
         base_query += " AND DATE(t.created_at) = %s"
