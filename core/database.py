@@ -230,7 +230,7 @@ def search_transactions(
 ):
     base_query = """
     SELECT
-        t.id, t.amount, t.type, t.reason, t.created_at, t.category, t.status,
+        t.id, t.amount, t.type, t.reason, t.created_at, t.category, t.status
     FROM transactions t
     WHERE a.telegram_id = %s
     """
