@@ -47,7 +47,7 @@ undo_transaction_query = sql.SQL("""
                 ELSE 'debit'
             END,
             'undo',
-            %s
+            reason || ' undo'  -- append 'undo' to original reason
         FROM original
         RETURNING id, telegram_id, amount, type
     ),
