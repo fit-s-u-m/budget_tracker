@@ -138,6 +138,7 @@ def fetch_transactions_for_user(telegram_id: int, limit: Optional[int] = None):
             "reason": r[3],
             "created_at": r[4],
             "category_name": r[5],
+            "status": r[6],
         }
         for r in rows
     ]
@@ -149,7 +150,7 @@ def fetch_latest_transaction(telegram_id: int) -> Dict:
         row = cursor.fetchone()
         print(f"Latest transaction row: {row}")
 
-        cursor.execute(get_query.get_category_name, (row[4],))
+        cursor.execute(get_query.get_category_name_query, (row[4],))
         cat_row = cursor.fetchone()
         print(row)
     if row:

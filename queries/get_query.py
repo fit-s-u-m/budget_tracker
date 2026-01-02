@@ -22,7 +22,8 @@ get_user_transactions_query = sql.SQL('''
         t.type,
         t.reason,
         t.created_at,
-        t.category AS category_name
+        t.category AS category_name,
+        t.status
     FROM transactions t
     LEFT JOIN categories c ON t.category = c.name
     WHERE t.telegram_id = %s
@@ -80,7 +81,8 @@ search_transactions_query = sql.SQL('''
         t.type,
         t.reason,
         t.created_at,
-        t.category AS category_name
+        t.category AS category_name,
+        t.status
     FROM transactions t
     LEFT JOIN categories c ON t.category = c.name
     WHERE t.telegram_id = %s

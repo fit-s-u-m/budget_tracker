@@ -174,6 +174,7 @@ def create_app() -> FastAPI:
                     "date": x[4],
                     "account_name": x[5],
                     "category": x[6],
+                    "status": x[7],
                 }
                 for x in results
             ]
